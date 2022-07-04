@@ -1,0 +1,91 @@
+<html>
+
+<head>
+    <title>✈flexflowflight Live Editor</title>
+    <style type="text/css">
+    </style>
+    <script src="../dist/browser.js"></script>
+    <script>
+        window.flexflowflight.onload = false;
+        addEventListener(
+            'load',
+            function (_e) {
+                const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+                const editElem = document.getElementById('flexflowflight-edit');
+                const showElem = document.getElementById('flexflowflight-show');
+                let lastExecTime;
+                let lastFl3;
+                let inExec = false;
+                const exec = async () => {
+                    const myExecTime = Date.now();
+                    const myFl3 = editElem.value;
+                    lastExecTime = myExecTime;
+                    lastFl3 = myFl3;
+                    await sleep(500);
+                    if (lastExecTime === myExecTime) {
+                        while (lastExecTime === myExecTime) {
+                            if (!inExec) {
+                                const svg = await window.flexflowflight.parse(myFl3);
+                                if (showElem.firstChild) {
+                                    showElem.removeChild(showElem.firstChild);
+                                }
+                                showElem.insertAdjacentHTML("afterbegin", svg);
+                                if (myFl3 === lastFl3) {
+                                    lastExecTime = Date.now();
+                                }
+                                break;
+                            }
+                            await sleep(100);
+                        }
+                    }
+                }
+                editElem.addEventListener('input', _e => {
+                    exec();
+                });
+                exec();
+            },
+            false
+        );
+    </script>
+</head>
+
+<body>
+    <div style="display: flex; height: 100%">
+<textarea id="flexflowflight-edit" wrap="off" style="width: 50%;flex-shrink: 0;">
+    [[input direction="cross"]]
+    ("input file1")
+    ("input file2")
+    ("input file3")
+    
+    [[main direction="cross"]]
+    (init) -
+    ("read file1")
+    ("file2 exists?")
+    
+    # [main.if] は省略可能
+    {main.if.yes."read file3"-main.finally}
+    
+    [main.if.yes]
+    ("read file3") - ("write file1")
+    
+    [main.if.no]
+    ("write file2")
+    
+    [main]
+    (finally)
+    
+    [[output direction="cross"]]
+    ("output file1")
+    ("output file2")
+    ---
+    {input."input file1"-main."read file1"}
+    {input."input file1"-main."read file1"}
+    
+    
+    {input."input file1"-main.if.yes."read file3"}
+</textarea>
+        <div id="flexflowflight-show" style="width: 50%;"></div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+{
+    "name": "llang-poc",
+    "build" : {
+        "dockerfile": "Dockerfile"
+    },
+    "settings": { 
+        "terminal.integrated.shell.linux": "/bin/ash"
+    },
+    "extensions": [
+        "denoland.vscode-deno",
+        "bungcip.better-toml"
+    ]
+}

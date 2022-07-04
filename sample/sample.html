@@ -1,0 +1,42 @@
+<html>
+
+<head>
+    <title>✈flexflowflight sample</title>
+    <script src="../dist/browser.js"></script>
+    <script>
+        // // If you need debug, uncomment below.
+        // window.flexflowflight.debug = true;
+    </script>
+</head>
+
+<body>
+    <code class="flexflowflight">
+[[input direction=column]]
+("input file1")
+("input file2")
+("input file3")
+
+[[main direction=column]]
+(init) -
+("read file1") -
+("file2 exists?")
+
+# [main.if] は省略可能
+
+[main.if.yes direction=column]
+("read file3") -
+("write file1")
+
+[main.if.no direction=column]
+("write file2")
+
+[main]
+(finally)
+
+[[output direction=column]]
+("output file1")
+("output file2")
+    </code>
+</body>
+
+</html>
