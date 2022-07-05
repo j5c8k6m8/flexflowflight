@@ -3,7 +3,7 @@ import { Name, AccessName, Path, Direction } from "./astC1.ts"
 import { AstL1, Container as ContainerL1, Group as GroupL1, Unit as UnitL1, Cell as CellL1 } from "./astL1.ts"
 import { AstL2, NodeAttr, LinkAttr, GroupAttr, UnitAttr, CellAttr, DocAttr } from "./astL2.ts"
 import { Container as ContainerL2, Group as GroupL2, Unit as UnitL2, Cell as CellL2, Link as LinkL2, Node as NodeL2 } from "./astL2.ts"
-import { parseDocAttr, parseRootUnitAttr, parseGroupAttr, parseUnitAttr, parseCellAttr, parseLinkAttr, parseLaneAttr } from "./convL1AttrToL2Attr.ts"
+import { parseDocAttr, parseRootUnitAttr, parseGroupAttr, parseUnitAttr, parseCellAttr, parseLinkAttr, parseLaneAttr, TextSizeFunc } from "./convL1AttrToL2Attr.ts"
 
 type IdGen = {
     nodeId: NodeId;
@@ -29,8 +29,6 @@ type Options = {
     post?: (astL2: AstL2) => Promise<AstL2>,
     textSize?: TextSizeFunc,
 }
-
-type TextSizeFunc = (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>;
 
 // FILE ERROR ID = '02'
 export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {}): Promise<AstL2> => {
@@ -85,7 +83,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
         const type = nextL1.type;
         if (type === 'Group') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseGroupAttr(nextL1, nodeId, docAttr);
+            const nextL2Attr = parseGroupAttr(nextL1, currentL1, nodeId, docAttr);
             nodeAttrs.push(nextL2Attr);
             const nextL2 = parseGroup(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr);
             currentState.l2.children.push(nextL2.nodeId);
@@ -102,7 +100,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
             });
         } else if (type === 'Unit') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseUnitAttr(nextL1, nodeId, docAttr);
+            const nextL2Attr = parseUnitAttr(nextL1, currentL1, nodeId, docAttr);
             nodeAttrs.push(nextL2Attr);
             const nextL2 = parseUnit(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr);
             currentState.l2.children.push(nextL2.nodeId);
@@ -117,9 +115,9 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
             });
         } else if (type === 'Cell') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseCellAttr(nextL1, nodeId, docAttr);
+            const nextL2Attr = await parseCellAttr(nextL1, currentL1, nodeId, docAttr, textSize);
             nodeAttrs.push(nextL2Attr);
-            const nextL2 = await parseCell(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr, docAttr, textSize);
+            const nextL2 = await parseCell(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId);
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
             setResourceMap(resourceMap, nextL2, nextL2Attr);
@@ -186,7 +184,6 @@ export const parseRootUnit = (l1: AstL1, nodeId: NodeId): UnitL2 => {
         children: [],
         siblings: [0],
         bnParents: [0, 0, 0, 0],
-        space: [0, 0, 0, 0],
     }
 }
 
@@ -203,12 +200,6 @@ const parseGroup = (l1: GroupL1, parent: ContainerL2, parents: Array<number>, si
         siblings: parent.children,
         links: [[], []],
         bnParents: edge,
-        space: [
-            groupAttr.padding[0] + groupAttr.border[0] + groupAttr.margin[0],
-            groupAttr.padding[1] + groupAttr.border[1] + groupAttr.margin[1],
-            groupAttr.padding[2] + groupAttr.border[2] + groupAttr.margin[2],
-            groupAttr.padding[3] + groupAttr.border[3] + groupAttr.margin[3],
-        ],
     };
 }
 
@@ -224,15 +215,13 @@ const parseUnit = (l1: UnitL1, parent: ContainerL2, parents: Array<number>, sibl
         children: [],
         siblings: parent.children,
         bnParents: edge,
-        space: unitAttr.margin,
     };
 }
 
-const parseCell = async (l1: CellL1, parent: ContainerL2, parents: Array<number>, siblingIndex: number, parentChildNum: number, nodeId: NodeId, cellAttr: CellAttr, docAttr: DocAttr, userDefineTextSizeFunc: TextSizeFunc | undefined): Promise<CellL2> => {
+const parseCell = (l1: CellL1, parent: ContainerL2, parents: Array<number>, siblingIndex: number, parentChildNum: number, nodeId: NodeId): CellL2 => {
     // FUNCTION ERROR ID = '14'
     const compass = getCellCompass(l1, parent)
     const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
-    const size = await getCellSize(l1, cellAttr, docAttr, userDefineTextSizeFunc);
     return {
         nodeId: nodeId,
         type: "Cell",
@@ -241,7 +230,6 @@ const parseCell = async (l1: CellL1, parent: ContainerL2, parents: Array<number>
         siblings: parent.children,
         links: [[], []],
         bnParents: edge,
-        size: size,
     };
 }
 
@@ -539,41 +527,4 @@ const getEdge = (compass: Compass, siblingIndex: number, parentCompass: Compass,
         tmpEdge[mappingCompassFull[2]],
         tmpEdge[mappingCompassFull[3]],
     ]
-}
-
-const getCellSize = async (l1: CellL1, cellAttr: CellAttr, docAttr: DocAttr, userDefineTextSizeFunc: TextSizeFunc | undefined): Promise<[number, number]> => {
-    let width = l1.attr?.width;
-    let height = l1.attr?.height;
-    if (width == null || height == null) {
-        let textSize: [number, number];
-        if (userDefineTextSizeFunc) {
-            textSize = await userDefineTextSizeFunc(l1.name, l1, docAttr);
-        } else {
-            textSize = defaultTextSizeFunc(l1.name, docAttr);
-        }
-        if (width == null) {
-            width = textSize[0] + cellAttr.padding[0] + cellAttr.padding[2] + cellAttr.border[0] + cellAttr.border[2];
-        }
-        if (height == null) {
-            height = textSize[1] + cellAttr.padding[1] + cellAttr.padding[3] + cellAttr.border[1] + cellAttr.border[3];
-        }
-    }
-    return [
-        width + cellAttr.margin[0] + cellAttr.margin[2],
-        height + cellAttr.margin[1] + cellAttr.margin[3],
-    ];
-}
-
-const defaultTextSizeFunc = (name: Name, docAttr: DocAttr): [number, number] => {
-    const nameLine = name.split("\n");
-    let charNum = 0;
-    nameLine.forEach(l => {
-        const len = [...l].length;
-        if (len > charNum) {
-            charNum = len;
-        }
-    });
-    const width = charNum * docAttr.char_width;
-    const height = nameLine.length * docAttr.char_height;
-    return [width, height];
 }

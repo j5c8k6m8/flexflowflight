@@ -53,6 +53,7 @@ export type RootAttr = {
     char_width?: null | number;  // TODO
     char_height?: null | number;  // TODO
     link_border?: null | number;  // TODO
+    alignItems?: null | Align;  // TODO
 };
 export type GroupAttr = {
     direction?: null | ContainerDirection;

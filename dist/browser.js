@@ -1216,10 +1216,17 @@ const parseRootUnitAttr = (l1, nodeId)=>{
             0,
             0,
             0
-        ]
+        ],
+        space: [
+            0,
+            0,
+            0,
+            0
+        ],
+        align: 'center'
     };
 };
-const parseGroupAttr1 = (l1, nodeId, docAttr)=>{
+const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     let direction = null;
     let disp = null;
     let resource = null;
@@ -1227,6 +1234,7 @@ const parseGroupAttr1 = (l1, nodeId, docAttr)=>{
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
     let margin = docAttr.group_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -1248,6 +1256,9 @@ const parseGroupAttr1 = (l1, nodeId, docAttr)=>{
         }
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
+        }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align = l1.attr.alignSelf;
         }
     }
     return {
@@ -1260,12 +1271,20 @@ const parseGroupAttr1 = (l1, nodeId, docAttr)=>{
         tag: tag,
         padding: padding,
         border: border,
-        margin: margin
+        margin: margin,
+        space: [
+            padding[0] + border[0] + margin[0],
+            padding[1] + border[1] + margin[1],
+            padding[2] + border[2] + margin[2],
+            padding[3] + border[3] + margin[3], 
+        ],
+        align: align
     };
 };
-const parseUnitAttr1 = (l1, nodeId, docAttr)=>{
+const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     let direction = null;
     let margin = docAttr.unit_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -1273,22 +1292,28 @@ const parseUnitAttr1 = (l1, nodeId, docAttr)=>{
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
         }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align = l1.attr.alignSelf;
+        }
     }
     return {
         nodeId: nodeId,
         type: 'Unit',
         name: l1.name,
         direction: direction,
-        margin: margin
+        margin: margin,
+        space: margin,
+        align: align
     };
 };
-const parseCellAttr1 = (l1, nodeId, docAttr)=>{
+const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeFunc)=>{
     let disp = l1.name;
     let resource = null;
     let tag = [];
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
     let margin = docAttr.cell_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
@@ -1309,6 +1334,7 @@ const parseCellAttr1 = (l1, nodeId, docAttr)=>{
             margin = l1.attr.margin;
         }
     }
+    const size = await getCellSize(l1, padding, border, margin, docAttr, userDefineTextSizeFunc);
     return {
         nodeId: nodeId,
         type: 'Cell',
@@ -1318,8 +1344,50 @@ const parseCellAttr1 = (l1, nodeId, docAttr)=>{
         tag: tag,
         padding: padding,
         border: border,
-        margin: margin
+        margin: margin,
+        size: size,
+        align: align
     };
+};
+const getCellSize = async (l1, padding, border, margin, docAttr, userDefineTextSizeFunc)=>{
+    let width = l1.attr?.width;
+    let height = l1.attr?.height;
+    if (width == null || height == null) {
+        let textSize;
+        if (userDefineTextSizeFunc) {
+            textSize = await userDefineTextSizeFunc(l1.name, l1, docAttr);
+        } else {
+            textSize = defaultTextSizeFunc(l1.name, docAttr);
+        }
+        if (width == null) {
+            width = textSize[0] + padding[0] + padding[2] + border[0] + border[2];
+        }
+        if (height == null) {
+            height = textSize[1] + padding[1] + padding[3] + border[1] + border[3];
+        }
+    }
+    return [
+        width + margin[0] + margin[2],
+        height + margin[1] + margin[3], 
+    ];
+};
+const defaultTextSizeFunc = (name, docAttr)=>{
+    const nameLine = name.split("\n");
+    let charNum = 0;
+    nameLine.forEach((l)=>{
+        const len = [
+            ...l
+        ].length;
+        if (len > charNum) {
+            charNum = len;
+        }
+    });
+    const width = charNum * docAttr.char_width;
+    const height = nameLine.length * docAttr.char_height;
+    return [
+        width,
+        height
+    ];
 };
 const parseLinkAttr1 = (l1, l2)=>{
     let disp = null;
@@ -1405,7 +1473,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
         const type = nextL1.type;
         if (type === 'Group') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseGroupAttr1(nextL1, nodeId, docAttr);
+            const nextL2Attr = parseGroupAttr1(nextL1, currentL1, nodeId, docAttr);
             nodeAttrs.push(nextL2Attr);
             const nextL2 = parseGroup1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr);
             currentState.l2.children.push(nextL2.nodeId);
@@ -1421,7 +1489,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
             });
         } else if (type === 'Unit') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseUnitAttr1(nextL1, nodeId, docAttr);
+            const nextL2Attr = parseUnitAttr1(nextL1, currentL1, nodeId, docAttr);
             nodeAttrs.push(nextL2Attr);
             const nextL2 = parseUnit1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr);
             currentState.l2.children.push(nextL2.nodeId);
@@ -1435,9 +1503,9 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
             });
         } else if (type === 'Cell') {
             const nodeId = getNodeId(idGen);
-            const nextL2Attr = parseCellAttr1(nextL1, nodeId, docAttr);
+            const nextL2Attr = await parseCellAttr1(nextL1, currentL1, nodeId, docAttr, textSize);
             nodeAttrs.push(nextL2Attr);
-            const nextL2 = await parseCell1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr, docAttr, textSize);
+            const nextL2 = await parseCell1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId);
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
             setResourceMap(resourceMap, nextL2, nextL2Attr);
@@ -1510,12 +1578,6 @@ const parseRootUnit = (l1, nodeId)=>{
             0,
             0,
             0
-        ],
-        space: [
-            0,
-            0,
-            0,
-            0
         ]
     };
 };
@@ -1533,13 +1595,7 @@ const parseGroup1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, 
             [],
             []
         ],
-        bnParents: edge,
-        space: [
-            groupAttr.padding[0] + groupAttr.border[0] + groupAttr.margin[0],
-            groupAttr.padding[1] + groupAttr.border[1] + groupAttr.margin[1],
-            groupAttr.padding[2] + groupAttr.border[2] + groupAttr.margin[2],
-            groupAttr.padding[3] + groupAttr.border[3] + groupAttr.margin[3], 
-        ]
+        bnParents: edge
     };
 };
 const parseUnit1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, unitAttr)=>{
@@ -1552,14 +1608,12 @@ const parseUnit1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, u
         parents: parents,
         children: [],
         siblings: parent.children,
-        bnParents: edge,
-        space: unitAttr.margin
+        bnParents: edge
     };
 };
-const parseCell1 = async (l1, parent, parents, siblingIndex, parentChildNum, nodeId, cellAttr, docAttr, userDefineTextSizeFunc)=>{
+const parseCell1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId)=>{
     const compass = getCellCompass(l1, parent);
     const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
-    const size = await getCellSize(l1, cellAttr, docAttr, userDefineTextSizeFunc);
     return {
         nodeId: nodeId,
         type: "Cell",
@@ -1570,8 +1624,7 @@ const parseCell1 = async (l1, parent, parents, siblingIndex, parentChildNum, nod
             [],
             []
         ],
-        bnParents: edge,
-        size: size
+        bnParents: edge
     };
 };
 const getNodes = (accessName, resourceMap, tagMap, nameMap)=>{
@@ -1900,46 +1953,6 @@ const getEdge = (compass, siblingIndex, parentCompass, parentChildNum, parentEdg
         tmpEdge[mappingCompassFull[1]],
         tmpEdge[mappingCompassFull[2]],
         tmpEdge[mappingCompassFull[3]], 
-    ];
-};
-const getCellSize = async (l1, cellAttr, docAttr, userDefineTextSizeFunc)=>{
-    let width = l1.attr?.width;
-    let height = l1.attr?.height;
-    if (width == null || height == null) {
-        let textSize;
-        if (userDefineTextSizeFunc) {
-            textSize = await userDefineTextSizeFunc(l1.name, l1, docAttr);
-        } else {
-            textSize = defaultTextSizeFunc(l1.name, docAttr);
-        }
-        if (width == null) {
-            width = textSize[0] + cellAttr.padding[0] + cellAttr.padding[2] + cellAttr.border[0] + cellAttr.border[2];
-        }
-        if (height == null) {
-            height = textSize[1] + cellAttr.padding[1] + cellAttr.padding[3] + cellAttr.border[1] + cellAttr.border[3];
-        }
-    }
-    return [
-        width + cellAttr.margin[0] + cellAttr.margin[2],
-        height + cellAttr.margin[1] + cellAttr.margin[3], 
-    ];
-};
-const defaultTextSizeFunc = (name, docAttr)=>{
-    const nameLine = name.split("\n");
-    let charNum = 0;
-    nameLine.forEach((l)=>{
-        const len = [
-            ...l
-        ].length;
-        if (len > charNum) {
-            charNum = len;
-        }
-    });
-    const width = charNum * docAttr.char_width;
-    const height = nameLine.length * docAttr.char_height;
-    return [
-        width,
-        height
     ];
 };
 const calcRoute = async (nodes, links, _laneAttr)=>{
@@ -2286,6 +2299,7 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
         astL3 = await pre(astL3);
     }
     const nodes = astL3.nodes;
+    const nodeAttrs = astL3.nodeAttrs;
     const links1 = astL3.links;
     const linkRoutes = astL3.linkRoutes;
     const n2i = [];
@@ -2341,7 +2355,7 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
             }
         });
     });
-    setNodeMap(0, items, nodes, links1, linkRoutes, astL3.laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, []);
+    setNodeMap(0, items, nodes, nodeAttrs, links1, linkRoutes, astL3.laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, []);
     links1.forEach((link)=>{
         const linkRoute = linkRoutes[link.linkId];
         const route = linkRoute.route.map((r)=>{
@@ -2414,7 +2428,7 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
     });
     let astL4 = {
         nodes: nodes,
-        nodeAttrs: astL3.nodeAttrs,
+        nodeAttrs: nodeAttrs,
         links: links1,
         linkAttrs: astL3.linkAttrs,
         docAttr: astL3.docAttr,
@@ -2429,8 +2443,9 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
     }
     return astL4;
 };
-const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems)=>{
+const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems)=>{
     const node = nodes[nodeId];
+    const nodeAttr = nodeAttrs[nodeId];
     const nodeType = node.type;
     if (nodeType === "Group" || nodeType === "Unit") {
         let nodeMainMaxLane = nodeMainMaxLaneMap.get(nodeId);
@@ -2452,6 +2467,9 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
         const itemId = getItemId(idGen, nodeId);
         let nodeItem;
         if (nodeType === "Group") {
+            if (nodeAttr.type !== "Group") {
+                throw new Error(`[E040202] invalid unreachable code.`);
+            }
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
@@ -2463,9 +2481,13 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
                 bnGates: getBnGates(node.links, allLinks, linkRoutes),
                 mainItems: mainItems,
                 crossItems: crossItems,
-                space: node.space
+                space: nodeAttr.space,
+                align: nodeAttr.align
             };
         } else if (nodeType === "Unit") {
+            if (nodeAttr.type !== "Unit") {
+                throw new Error(`[E040203] invalid unreachable code.`);
+            }
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
@@ -2475,7 +2497,8 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
                 siblings: [],
                 mainItems: mainItems,
                 crossItems: crossItems,
-                space: node.space
+                space: nodeAttr.space,
+                align: nodeAttr.align
             };
         } else {
             const _ = nodeType;
@@ -2542,7 +2565,7 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
                 items.push(load);
                 mainItems.push(load.itemId);
             }
-            setNodeMap(node.children[i1], items, nodes, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems);
+            setNodeMap(node.children[i1], items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems);
         }
         let mainLength = 0;
         const laneMap = nodeMainMaxLane.get(node.children.length);
@@ -2553,8 +2576,6 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
                 }
             }
         }
-        console.log(mainLength);
-        console.log(999);
         for(let j = 0; j < mainLength + 1; j++){
             const itemId = getItemId(idGen, null);
             const links = laneMap?.get(j) || [];
@@ -2596,7 +2617,10 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
             items.push(load);
             crossItems[1].push(load.itemId);
         }
-    } else {
+    } else if (nodeType === "Cell") {
+        if (nodeAttr.type !== "Cell") {
+            throw new Error(`[E040204] invalid unreachable code.`);
+        }
         const nodeItemId = getItemId(idGen, nodeId);
         const nodeItem = {
             itemId: nodeItemId,
@@ -2606,10 +2630,14 @@ const setNodeMap = (nodeId, items, nodes, allLinks, linkRoutes, laneAttr, idGen,
             siblings: [],
             links: node.links,
             bnGates: getBnGates(node.links, allLinks, linkRoutes),
-            size: node.size
+            size: nodeAttr.size,
+            align: nodeAttr.align
         };
         items.push(nodeItem);
         mainItems.push(nodeItem.itemId);
+    } else {
+        const _ = nodeType;
+        return _;
     }
 };
 const getBnGates = (links, allLink, linkRoutes)=>{
@@ -2776,39 +2804,14 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
         });
         let mainItemMainCood = mainCood;
         const mainItemCrossCood = crossCood;
+        let maxMainItemWidth = 0;
         item2.mainItems.forEach((itemId, i)=>{
-            const item = items[itemId];
             const size = sizes[itemId];
-            const itemType = item.type;
-            if (itemType === 'Cell' || itemType === 'Road') {
-                itemLocas[itemId] = {
-                    itemId: itemId,
-                    size: size,
-                    coord: [
-                        mainItemMainCood,
-                        mainItemCrossCood
-                    ]
-                };
-                mainItemMainCood += size[compassAxis[0]];
-            } else if (itemType === 'Group' || itemType === 'Unit') {
-                itemLocas[itemId] = {
-                    itemId: itemId,
-                    size: size,
-                    coord: [
-                        mainItemMainCood,
-                        mainItemCrossCood
-                    ]
-                };
-                getCalcItemCoordRecursive(itemId, items, sizes, itemLocas);
-                mainItemMainCood += size[compassAxis[0]];
-            } else {
-                const _ = itemType;
-                return _;
-            }
-            if (i === 0) {
-                crossCood += size[compassAxis[1]];
+            if (maxMainItemWidth < size[compassAxis[1]]) {
+                maxMainItemWidth = size[compassAxis[1]];
             }
         });
+        crossCood += maxMainItemWidth;
         item2.crossItems[1].forEach((itemId)=>{
             const item = items[itemId];
             const size = sizes[itemId];
@@ -2825,6 +2828,68 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
                 ]
             };
             crossCood += size[compassAxis[1]];
+        });
+        item2.mainItems.forEach((itemId, i)=>{
+            const item = items[itemId];
+            const size = sizes[itemId];
+            const itemType = item.type;
+            if (itemType === 'Road') {
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [
+                        mainItemMainCood,
+                        mainItemCrossCood
+                    ]
+                };
+                mainItemMainCood += size[compassAxis[0]];
+            } else if (itemType === 'Cell') {
+                let cellCrossCood;
+                if (item.align === 'start') {
+                    cellCrossCood = mainItemCrossCood;
+                } else if (item.align === 'center') {
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
+                } else if (item.align === 'end') {
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
+                } else {
+                    const _ = item.align;
+                    return _;
+                }
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [
+                        mainItemMainCood,
+                        cellCrossCood
+                    ]
+                };
+                mainItemMainCood += size[compassAxis[0]];
+            } else if (itemType === 'Group' || itemType === 'Unit') {
+                let cellCrossCood;
+                if (item.align === 'start') {
+                    cellCrossCood = mainItemCrossCood;
+                } else if (item.align === 'center') {
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
+                } else if (item.align === 'end') {
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
+                } else {
+                    const _ = item.align;
+                    return _;
+                }
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [
+                        mainItemMainCood,
+                        cellCrossCood
+                    ]
+                };
+                getCalcItemCoordRecursive(itemId, items, sizes, itemLocas);
+                mainItemMainCood += size[compassAxis[0]];
+            } else {
+                const _ = itemType;
+                return _;
+            }
         });
     } else if (itemType2 === 'Cell' || itemType2 === 'Road') {} else {
         const _ = itemType2;

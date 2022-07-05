@@ -1,7 +1,10 @@
 import { NodeId, EdgeNumber } from "./astC0.ts"
-import { AstL1, Group as GroupL1, Unit as UnitL1, Cell as CellL1, Link as LinkL1 } from "./astL1.ts"
-import { Group as GroupL2, Unit as UnitL2, Cell as CellL2, Link as LinkL2 } from "./astL2.ts"
-import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LaneAttr as LaneAttrL2 } from "./astL2.ts"
+import { Name } from "./astC1.ts"
+import { AstL1, Group as GroupL1, Unit as UnitL1, Container as ContainerL1, Cell as CellL1, Link as LinkL1 } from "./astL1.ts"
+import { Link as LinkL2 } from "./astL2.ts"
+import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, ContainerAttr as ContainerAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LaneAttr as LaneAttrL2 } from "./astL2.ts"
+
+export type TextSizeFunc = (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>;
 
 export const parseDocAttr = (l1: AstL1): DocAttr => {
     let css = null;
@@ -83,10 +86,12 @@ export const parseRootUnitAttr = (l1: AstL1, nodeId: NodeId): UnitAttrL2 => {
         name: '',
         direction: direction,
         margin: [0, 0, 0, 0],
+        space: [0, 0, 0, 0],
+        align: 'center',
     };
 }
 
-export const parseGroupAttr = (l1: GroupL1, nodeId: NodeId, docAttr: DocAttr): GroupAttrL2 => {
+export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr): GroupAttrL2 => {
     let direction = null;
     let disp = null;
     let resource = null;
@@ -94,6 +99,7 @@ export const parseGroupAttr = (l1: GroupL1, nodeId: NodeId, docAttr: DocAttr): G
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
     let margin = docAttr.group_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -115,6 +121,9 @@ export const parseGroupAttr = (l1: GroupL1, nodeId: NodeId, docAttr: DocAttr): G
         }
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
+        }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align = l1.attr.alignSelf;
         }
     }
     return {
@@ -128,18 +137,29 @@ export const parseGroupAttr = (l1: GroupL1, nodeId: NodeId, docAttr: DocAttr): G
         padding: padding,
         border: border,
         margin: margin,
+        space: [
+            padding[0] + border[0] + margin[0],
+            padding[1] + border[1] + margin[1],
+            padding[2] + border[2] + margin[2],
+            padding[3] + border[3] + margin[3],
+        ],
+        align: align,
     };
 }
 
-export const parseUnitAttr = (l1: UnitL1, nodeId: NodeId, docAttr: DocAttr): UnitAttrL2 => {
+export const parseUnitAttr = (l1: UnitL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr): UnitAttrL2 => {
     let direction = null;
     let margin = docAttr.unit_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
         }
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
+        }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align = l1.attr.alignSelf;
         }
     }
     return {
@@ -148,16 +168,19 @@ export const parseUnitAttr = (l1: UnitL1, nodeId: NodeId, docAttr: DocAttr): Uni
         name: l1.name,
         direction: direction,
         margin: margin,
+        space: margin,
+        align: align,
     };
 }
 
-export const parseCellAttr = (l1: CellL1, nodeId: NodeId, docAttr: DocAttr): CellAttrL2 => {
+export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr, userDefineTextSizeFunc: TextSizeFunc | undefined): Promise<CellAttrL2> => {
     let disp = l1.name;
     let resource = null;
     let tag: Array<string> = [];
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
     let margin = docAttr.cell_margin;
+    let align = parentL1.attr?.alignItems || 'center';
     if ('attr' in l1 && l1.attr) {
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
@@ -178,6 +201,7 @@ export const parseCellAttr = (l1: CellL1, nodeId: NodeId, docAttr: DocAttr): Cel
             margin = l1.attr.margin;
         }
     }
+    const size = await getCellSize(l1, padding, border, margin, docAttr, userDefineTextSizeFunc);
     return {
         nodeId: nodeId,
         type: 'Cell',
@@ -188,7 +212,47 @@ export const parseCellAttr = (l1: CellL1, nodeId: NodeId, docAttr: DocAttr): Cel
         padding: padding,
         border: border,
         margin: margin,
+        size: size,
+        align: align,
     };
+}
+
+
+const getCellSize = async (l1: CellL1, padding: EdgeNumber, border: EdgeNumber, margin: EdgeNumber, docAttr: DocAttr, userDefineTextSizeFunc: TextSizeFunc | undefined): Promise<[number, number]> => {
+    let width = l1.attr?.width;
+    let height = l1.attr?.height;
+    if (width == null || height == null) {
+        let textSize: [number, number];
+        if (userDefineTextSizeFunc) {
+            textSize = await userDefineTextSizeFunc(l1.name, l1, docAttr);
+        } else {
+            textSize = defaultTextSizeFunc(l1.name, docAttr);
+        }
+        if (width == null) {
+            width = textSize[0] + padding[0] + padding[2] + border[0] + border[2];
+        }
+        if (height == null) {
+            height = textSize[1] + padding[1] + padding[3] + border[1] + border[3];
+        }
+    }
+    return [
+        width + margin[0] + margin[2],
+        height + margin[1] + margin[3],
+    ];
+}
+
+const defaultTextSizeFunc = (name: Name, docAttr: DocAttr): [number, number] => {
+    const nameLine = name.split("\n");
+    let charNum = 0;
+    nameLine.forEach(l => {
+        const len = [...l].length;
+        if (len > charNum) {
+            charNum = len;
+        }
+    });
+    const width = charNum * docAttr.char_width;
+    const height = nameLine.length * docAttr.char_height;
+    return [width, height];
 }
 
 export const parseLinkAttr = (l1: LinkL1, l2: LinkL2): LinkAttrL2 => {
@@ -205,7 +269,7 @@ export const parseLinkAttr = (l1: LinkL1, l2: LinkL2): LinkAttrL2 => {
     };
 }
 export const parseLaneAttr = (l1: AstL1): LaneAttrL2 => {
-    let lane_width:[number, number] = [12, 12];
+    let lane_width: [number, number] = [12, 12];
     let lane_min = 0;
     if ('attr' in l1 && l1.attr) {
         if ('lane_width' in l1.attr && l1.attr.lane_width) {

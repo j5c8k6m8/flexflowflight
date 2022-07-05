@@ -1,4 +1,5 @@
 import { NodeId, LinkId, ItemId, GateNo, Compass, Direct, CrossAvenue, Size, EdgeNumber } from "./astC0.ts"
+import { Align } from "./astC1.ts"
 import { AstL2 } from "./astL2.ts"
 
 export type AstL4 = AstL2 & {
@@ -22,6 +23,7 @@ export type GroupItem = {
     mainItems: ItemId[];
     crossItems: [ItemId[], ItemId[]];
     space: EdgeNumber;
+    align: Align;
 };
 
 export type UnitItem =  {
@@ -33,6 +35,7 @@ export type UnitItem =  {
     mainItems: ItemId[];
     crossItems: [ItemId[], ItemId[]];
     space: EdgeNumber;
+    align: Align;
 };
 
 export type CellItem = {
@@ -44,6 +47,7 @@ export type CellItem = {
     // bnGates is 'b'oundary 'n'umber of gates.
     bnGates: EdgeNumber;
     size: Size;
+    align: Align;
 };
 
 export type Road = RoadMain | RoadCross;

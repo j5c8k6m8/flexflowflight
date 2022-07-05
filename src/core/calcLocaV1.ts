@@ -120,33 +120,14 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
         });
         let mainItemMainCood = mainCood;
         const mainItemCrossCood = crossCood;
+        let maxMainItemWidth = 0;
         item.mainItems.forEach((itemId, i) => {
-            const item = items[itemId];
             const size = sizes[itemId];
-            const itemType = item.type;
-            if (itemType === 'Cell' || itemType === 'Road') {
-                itemLocas[itemId] = {
-                    itemId: itemId,
-                    size: size,
-                    coord: [mainItemMainCood, mainItemCrossCood],
-                }
-                mainItemMainCood += size[compassAxis[0]];
-            } else if (itemType === 'Group' || itemType === 'Unit') {
-                itemLocas[itemId] = {
-                    itemId: itemId,
-                    size: size,
-                    coord: [mainItemMainCood, mainItemCrossCood],
-                }
-                getCalcItemCoordRecursive(itemId, items, sizes, itemLocas);
-                mainItemMainCood += size[compassAxis[0]];
-            } else {
-                const _: never = itemType;
-                return _;
-            }
-            if (i === 0) {
-                crossCood += size[compassAxis[1]];
+            if (maxMainItemWidth < size[compassAxis[1]]) {
+                maxMainItemWidth = size[compassAxis[1]];
             }
         });
+        crossCood += maxMainItemWidth;
         item.crossItems[1].forEach(itemId => {
             const item = items[itemId];
             const size = sizes[itemId];
@@ -160,6 +141,59 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
                 coord: [mainCood, crossCood],
             }
             crossCood += size[compassAxis[1]];
+        });
+        item.mainItems.forEach((itemId, i) => {
+            const item = items[itemId];
+            const size = sizes[itemId];
+            const itemType = item.type;
+            if (itemType === 'Road') {
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [mainItemMainCood, mainItemCrossCood],
+                }
+                mainItemMainCood += size[compassAxis[0]];
+            } else if (itemType === 'Cell') {
+                let cellCrossCood;
+                if (item.align === 'start') {
+                    cellCrossCood = mainItemCrossCood;
+                } else if (item.align === 'center') {
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
+                } else if (item.align === 'end') {
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
+                } else {
+                    const _: never = item.align;
+                    return _;
+                }
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [mainItemMainCood, cellCrossCood],
+                }
+                mainItemMainCood += size[compassAxis[0]];
+            } else if (itemType === 'Group' || itemType === 'Unit') {
+                let cellCrossCood;
+                if (item.align === 'start') {
+                    cellCrossCood = mainItemCrossCood;
+                } else if (item.align === 'center') {
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
+                } else if (item.align === 'end') {
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
+                } else {
+                    const _: never = item.align;
+                    return _;
+                }
+                itemLocas[itemId] = {
+                    itemId: itemId,
+                    size: size,
+                    coord: [mainItemMainCood, cellCrossCood],
+                }
+                getCalcItemCoordRecursive(itemId, items, sizes, itemLocas);
+                mainItemMainCood += size[compassAxis[0]];
+            } else {
+                const _: never = itemType;
+                return _;
+            }
         });
     } else if (itemType === 'Cell' || itemType === 'Road') {
         // pass

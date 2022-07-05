@@ -1,5 +1,5 @@
 import { ItemId, NodeId, LinkId, GateNo, EdgeNumber } from "./astC0.ts"
-import { Node, Link, LaneAttr } from "./astL2.ts"
+import { Node, NodeAttr, Link, LaneAttr } from "./astL2.ts"
 import { AstL3, LinkRoute } from "./astL3.ts"
 import { AstL4, Item, GroupItem, UnitItem, CellItem, RoadMain, RoadCross, LinkItem } from "./astL4.ts"
 
@@ -22,6 +22,7 @@ export const parse = async (astL3: AstL3, { pre, post }: Options = {}): Promise<
     }
 
     const nodes = astL3.nodes;
+    const nodeAttrs = astL3.nodeAttrs;
     const links = astL3.links;
     const linkRoutes: LinkRoute[] = astL3.linkRoutes;
 
@@ -82,6 +83,7 @@ export const parse = async (astL3: AstL3, { pre, post }: Options = {}): Promise<
         0,
         items,
         nodes,
+        nodeAttrs,
         links,
         linkRoutes,
         astL3.laneAttr,
@@ -162,7 +164,7 @@ export const parse = async (astL3: AstL3, { pre, post }: Options = {}): Promise<
     });
     let astL4: AstL4 = {
         nodes: nodes,
-        nodeAttrs: astL3.nodeAttrs,
+        nodeAttrs: nodeAttrs,
         links: links,
         linkAttrs: astL3.linkAttrs,
         docAttr: astL3.docAttr,
@@ -182,6 +184,7 @@ const setNodeMap = (
     nodeId: NodeId,
     items: Item[],
     nodes: Node[],
+    nodeAttrs: NodeAttr[],
     allLinks: Link[],
     linkRoutes: LinkRoute[],
     laneAttr: LaneAttr,
@@ -193,6 +196,7 @@ const setNodeMap = (
 ): void => {
     // FUNCTION ERROR ID = '01'
     const node = nodes[nodeId];
+    const nodeAttr = nodeAttrs[nodeId];
     const nodeType = node.type;
     if (nodeType === "Group" || nodeType === "Unit") {
         let nodeMainMaxLane = nodeMainMaxLaneMap.get(nodeId);
@@ -208,6 +212,9 @@ const setNodeMap = (
         const itemId = getItemId(idGen, nodeId);
         let nodeItem: GroupItem | UnitItem;
         if (nodeType === "Group") {
+            if (nodeAttr.type !== "Group") {
+                throw new Error(`[E040202] invalid unreachable code.`);
+            }
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
@@ -218,9 +225,13 @@ const setNodeMap = (
                 bnGates: getBnGates(node.links, allLinks, linkRoutes),
                 mainItems: mainItems,
                 crossItems: crossItems,
-                space: node.space,
+                space: nodeAttr.space,
+                align: nodeAttr.align,
             }
         } else if (nodeType === "Unit") {
+            if (nodeAttr.type !== "Unit") {
+                throw new Error(`[E040203] invalid unreachable code.`);
+            }
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
@@ -229,7 +240,8 @@ const setNodeMap = (
                 siblings: [],  // set after
                 mainItems: mainItems,
                 crossItems: crossItems,
-                space: node.space,
+                space: nodeAttr.space,
+                align: nodeAttr.align,
             }
         } else {
             const _: never = nodeType;
@@ -245,7 +257,7 @@ const setNodeMap = (
                 throw new Error(`[E040201] invalid unreachable code.`);
             }
         }
-        // TODO 要確認
+        // TODO
         let crossFirstLength = 0;
         for (const key of nodeCrossMaxLane[0].keys()) {
             if (key > crossFirstLength) {
@@ -300,6 +312,7 @@ const setNodeMap = (
                 node.children[i],
                 items,
                 nodes,
+                nodeAttrs,
                 allLinks,
                 linkRoutes,
                 laneAttr,
@@ -310,6 +323,7 @@ const setNodeMap = (
                 mainItems,
             );
         }
+        // TODO
         let mainLength = 0;
         const laneMap = nodeMainMaxLane.get(node.children.length);
         if (laneMap) {
@@ -319,8 +333,6 @@ const setNodeMap = (
                 }
             }
         }
-        console.log(mainLength)
-        console.log(999);
         for (let j = 0; j < mainLength + 1; j++) {
             const itemId = getItemId(idGen, null);
             const links = laneMap?.get(j) || [];
@@ -360,7 +372,12 @@ const setNodeMap = (
             items.push(load);
             crossItems[1].push(load.itemId)
         }
-    } else {
+    } else if (nodeType === "Cell") {
+
+        if (nodeAttr.type !== "Cell") {
+            throw new Error(`[E040204] invalid unreachable code.`);
+        }
+
         const nodeItemId = getItemId(idGen, nodeId);
         const nodeItem: CellItem = {
             itemId: nodeItemId,
@@ -369,10 +386,14 @@ const setNodeMap = (
             siblings: [],  // set after
             links: node.links,
             bnGates: getBnGates(node.links, allLinks, linkRoutes),
-            size: node.size,
+            size: nodeAttr.size,
+            align: nodeAttr.align,
         }
         items.push(nodeItem);
         mainItems.push(nodeItem.itemId)
+    } else {
+        const _: never = nodeType;
+        return _;
     }
 }
 

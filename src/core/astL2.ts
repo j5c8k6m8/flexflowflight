@@ -1,5 +1,5 @@
 import { NodeId, LinkId, Compass, Direct, Size, EdgeNumber } from "./astC0.ts"
-import { Name, AccessName, ContainerDirection } from "./astC1.ts"
+import { Name, AccessName, ContainerDirection, Align } from "./astC1.ts"
 
 export type AstL2 = {
     // Id is always equal to array index.
@@ -26,7 +26,6 @@ export type Group = {
     links: [LinkId[], LinkId[]];
     // bnParents is 'b'oundary 'n'umber of parents.
     bnParents: EdgeNumber;
-    space: EdgeNumber;
 };
 
 export type Unit = {
@@ -38,8 +37,8 @@ export type Unit = {
     siblings: NodeId[];
     // bnParents is 'b'oundary 'n'umber of parents.
     bnParents: EdgeNumber;
-    space: EdgeNumber;
 };
+
 export type Cell = {
     nodeId: NodeId;
     type: "Cell";
@@ -49,8 +48,8 @@ export type Cell = {
     links: [LinkId[],LinkId[]];
     // bnParents is boundary number of parents.
     bnParents: EdgeNumber;
-    size: Size;
 };
+
 export type Link = {
     linkId: LinkId;
     box: [NodeId, NodeId];
@@ -74,6 +73,7 @@ export type DocAttr = {
     char_height: number;
     link_border: number;
 }
+
 export type GroupAttr = {
     nodeId: NodeId;
     type: "Group";
@@ -85,14 +85,20 @@ export type GroupAttr = {
     padding: EdgeNumber;
     border: EdgeNumber;
     margin: EdgeNumber;
+    space: EdgeNumber;
+    align: Align;
 }
+
 export type UnitAttr = {
     nodeId: NodeId;
     type: "Unit";
     name: Name;
     direction: null | ContainerDirection;
     margin: EdgeNumber;
+    space: EdgeNumber;
+    align: Align;
 }
+
 export type CellAttr = {
     nodeId: NodeId;
     type: "Cell";
@@ -103,12 +109,16 @@ export type CellAttr = {
     padding: EdgeNumber;
     border: EdgeNumber;
     margin: EdgeNumber;
+    size: Size;
+    align: Align;
 };
+
 export type LinkAttr = {
     linkId: LinkId;
     disp: null | string;
     node: [AccessName, AccessName];
 };
+
 export type LaneAttr = {
     // RoadMain width ,RoadCross width
     lane_width: [number, number];

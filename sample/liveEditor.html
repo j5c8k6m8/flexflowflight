@@ -25,7 +25,12 @@
                     if (lastExecTime === myExecTime) {
                         while (lastExecTime === myExecTime) {
                             if (!inExec) {
-                                const svg = await window.flexflowflight.parse(myFl3);
+                                const svg = await window.flexflowflight.parse(
+                                    myFl3,
+                                    {
+                                        debug: false, // If you need debug, change true.
+                                    },
+                                );
                                 if (showElem.firstChild) {
                                     showElem.removeChild(showElem.firstChild);
                                 }
@@ -51,7 +56,7 @@
 
 <body>
     <div style="display: flex; height: 100%">
-<textarea id="flexflowflight-edit" wrap="off" style="width: 50%;flex-shrink: 0;">
+        <textarea id="flexflowflight-edit" wrap="off" style="width: 50%;flex-shrink: 0;">
     [[input direction="cross"]]
     ("input file1")
     ("input file2")
