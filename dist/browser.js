@@ -3280,9 +3280,23 @@ addEventListener('load', function(_e) {
         const elems = document.querySelectorAll(".flexflowflight");
         elems.forEach(async (elem)=>{
             elem.style.display = "none";
+            elem.insertAdjacentHTML("afterend", '<svg id="_flexflowflight_work" xmlns="http://www.w3.org/2000/svg" width="1000" height="1000"></svg>');
+            const tmpElem = document.getElementById('_flexflowflight_work');
+            const getTextSize = async (name, _cellL1)=>{
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.textContent = name;
+                tmpElem?.appendChild(text);
+                const domRect = text.getBoundingClientRect();
+                return [
+                    domRect.width,
+                    domRect.height
+                ];
+            };
             const svg = await parse7(elem.textContent || '', {
+                textSize: getTextSize,
                 debug: window.flexflowflight.debug
             });
+            tmpElem?.remove();
             elem.insertAdjacentHTML("afterend", svg);
         });
     }

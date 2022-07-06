@@ -2807,8 +2807,8 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
         let maxMainItemWidth = 0;
         item2.mainItems.forEach((itemId, i)=>{
             const size = sizes[itemId];
-            if (maxMainItemWidth < size[compassAxis[0]]) {
-                maxMainItemWidth = size[compassAxis[0]];
+            if (maxMainItemWidth < size[compassAxis[1]]) {
+                maxMainItemWidth = size[compassAxis[1]];
             }
         });
         crossCood += maxMainItemWidth;
@@ -2848,9 +2848,9 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
                 if (item.align === 'start') {
                     cellCrossCood = mainItemCrossCood;
                 } else if (item.align === 'center') {
-                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - item.size[compassAxis[0]]) / 2);
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
                 } else if (item.align === 'end') {
-                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - item.size[compassAxis[0]];
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
                 } else {
                     const _ = item.align;
                     return _;
@@ -2865,12 +2865,23 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
                 };
                 mainItemMainCood += size[compassAxis[0]];
             } else if (itemType === 'Group' || itemType === 'Unit') {
+                let cellCrossCood;
+                if (item.align === 'start') {
+                    cellCrossCood = mainItemCrossCood;
+                } else if (item.align === 'center') {
+                    cellCrossCood = mainItemCrossCood + Math.floor((maxMainItemWidth - size[compassAxis[1]]) / 2);
+                } else if (item.align === 'end') {
+                    cellCrossCood = mainItemCrossCood + maxMainItemWidth - size[compassAxis[1]];
+                } else {
+                    const _ = item.align;
+                    return _;
+                }
                 itemLocas[itemId] = {
                     itemId: itemId,
                     size: size,
                     coord: [
                         mainItemMainCood,
-                        mainItemCrossCood
+                        cellCrossCood
                     ]
                 };
                 getCalcItemCoordRecursive(itemId, items, sizes, itemLocas);

@@ -7,15 +7,26 @@
     <script src="../dist/browser.js"></script>
     <script>
         window.flexflowflight.onload = false;
+        // deno-lint-ignore require-await
         addEventListener(
             'load',
             function (_e) {
                 const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
                 const editElem = document.getElementById('flexflowflight-edit');
                 const showElem = document.getElementById('flexflowflight-show');
+                const workElem = document.getElementById('flexflowflight-work');
                 let lastExecTime;
                 let lastFl3;
                 let inExec = false;
+                const getTextSize = async (name) => {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.textContent = name;
+                    workElem.appendChild(text);
+                    const domRect = text.getBoundingClientRect()
+                    const ret = [domRect.width, domRect.height]
+                    text.remove();
+                    return ret;
+                }
                 const exec = async () => {
                     const myExecTime = Date.now();
                     const myFl3 = editElem.value;
@@ -25,12 +36,15 @@
                     if (lastExecTime === myExecTime) {
                         while (lastExecTime === myExecTime) {
                             if (!inExec) {
+                                workElem.style.display = 'block';
                                 const svg = await window.flexflowflight.parse(
                                     myFl3,
                                     {
+                                        textSize: getTextSize,
                                         debug: false, // If you need debug, change true.
                                     },
                                 );
+                                workElem.style.display = 'none';
                                 if (showElem.firstChild) {
                                     showElem.removeChild(showElem.firstChild);
                                 }
@@ -56,7 +70,7 @@
 
 <body>
     <div style="display: flex; height: 100%">
-        <textarea id="flexflowflight-edit" wrap="off" style="width: 50%;flex-shrink: 0;">
+        <textarea id="flexflowflight-edit" wrap="off" style="width: 40%;flex-shrink: 0;">
     [[input direction="cross"]]
     ("input file1")
     ("input file2")
@@ -89,7 +103,9 @@
     
     {input."input file1"-main.if.yes."read file3"}
 </textarea>
-        <div id="flexflowflight-show" style="width: 50%;"></div>
+        <div id="flexflowflight-show" style="width: 60%;"></div>
+        <svg id="flexflowflight-work" xmlns="http://www.w3.org/2000/svg" width="1000" height="1000"
+            style="display: none;"></svg>
     </div>
 </body>
 
