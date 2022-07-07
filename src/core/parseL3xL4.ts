@@ -275,7 +275,7 @@ const setNodeMap = (
                 lane: i,
                 parents: node.parents.map(p => n2i[p]).concat(n2i[node.nodeId]),
                 links: links,
-                width: laneAttr.lane_width[1],
+                width: laneAttr.laneWidth[1],
             }
             items.push(load);
             crossItems[0].push(load.itemId)
@@ -302,7 +302,7 @@ const setNodeMap = (
                     parents: node.parents.map(p => n2i[p]).concat(n2i[node.nodeId]),
                     siblings: [],  // set after
                     links: links,
-                    width: laneAttr.lane_width[0],
+                    width: laneAttr.laneWidth[0],
                 }
                 items.push(load);
                 mainItems.push(load.itemId)
@@ -345,7 +345,7 @@ const setNodeMap = (
                 parents: node.parents.map(p => n2i[p]).concat(n2i[node.nodeId]),
                 siblings: [],  // set after
                 links: links,
-                width: laneAttr.lane_width[0],
+                width: laneAttr.laneWidth[0],
             }
             items.push(load);
             mainItems.push(load.itemId)
@@ -367,7 +367,7 @@ const setNodeMap = (
                 lane: i,
                 parents: node.parents.map(p => n2i[p]).concat(n2i[node.nodeId]),
                 links: links,
-                width: laneAttr.lane_width[1],
+                width: laneAttr.laneWidth[1],
             }
             items.push(load);
             crossItems[1].push(load.itemId)

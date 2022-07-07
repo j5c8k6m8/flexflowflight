@@ -269,18 +269,18 @@ export const parseLinkAttr = (l1: LinkL1, l2: LinkL2): LinkAttrL2 => {
     };
 }
 export const parseLaneAttr = (l1: AstL1): LaneAttrL2 => {
-    let lane_width: [number, number] = [12, 12];
-    let lane_min = 0;
+    let laneWidth: [number, number] = [12, 12];
+    let laneMin = 0;
     if ('attr' in l1 && l1.attr) {
         if ('lane_width' in l1.attr && l1.attr.lane_width) {
-            lane_width = l1.attr.lane_width;
+            laneWidth = l1.attr.lane_width;
         }
         if ('lane_min' in l1.attr && l1.attr.lane_min) {
-            lane_min = l1.attr.lane_min;
+            laneMin = l1.attr.lane_min;
         }
     }
     return {
-        lane_width: lane_width,
-        lane_min: lane_min,
+        laneWidth: laneWidth,
+        laneMin: laneMin,
     };
 }

@@ -1403,22 +1403,22 @@ const parseLinkAttr1 = (l1, l2)=>{
     };
 };
 const parseLaneAttr = (l1)=>{
-    let lane_width = [
+    let laneWidth = [
         12,
         12
     ];
-    let lane_min = 0;
+    let laneMin = 0;
     if ('attr' in l1 && l1.attr) {
         if ('lane_width' in l1.attr && l1.attr.lane_width) {
-            lane_width = l1.attr.lane_width;
+            laneWidth = l1.attr.lane_width;
         }
         if ('lane_min' in l1.attr && l1.attr.lane_min) {
-            lane_min = l1.attr.lane_min;
+            laneMin = l1.attr.lane_min;
         }
     }
     return {
-        lane_width: lane_width,
-        lane_min: lane_min
+        laneWidth: laneWidth,
+        laneMin: laneMin
     };
 };
 const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
@@ -2532,7 +2532,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 parents: node.parents.map((p)=>n2i[p]
                 ).concat(n2i[node.nodeId]),
                 links: links,
-                width: laneAttr.lane_width[1]
+                width: laneAttr.laneWidth[1]
             };
             items.push(load);
             crossItems[0].push(load.itemId);
@@ -2560,7 +2560,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                     ).concat(n2i[node.nodeId]),
                     siblings: [],
                     links: links,
-                    width: laneAttr.lane_width[0]
+                    width: laneAttr.laneWidth[0]
                 };
                 items.push(load);
                 mainItems.push(load.itemId);
@@ -2589,7 +2589,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 ).concat(n2i[node.nodeId]),
                 siblings: [],
                 links: links,
-                width: laneAttr.lane_width[0]
+                width: laneAttr.laneWidth[0]
             };
             items.push(load);
             mainItems.push(load.itemId);
@@ -2612,7 +2612,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 parents: node.parents.map((p)=>n2i[p]
                 ).concat(n2i[node.nodeId]),
                 links: links,
-                width: laneAttr.lane_width[1]
+                width: laneAttr.laneWidth[1]
             };
             items.push(load);
             crossItems[1].push(load.itemId);
@@ -3164,13 +3164,49 @@ const parse6 = async (astL6, { pre , post  } = {})=>{
             sb.push(`<text x="${cellDisp.xy[0] + Math.floor(cellDisp.size[0] / 2)}" y="${cellDisp.xy[1] + Math.floor(cellDisp.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text}</text>`);
         }
     });
+    const laneWidth = astL6.laneAttr.laneWidth.map((x)=>Math.floor(x * 0.6)
+    );
+    const laneWidthDouble = laneWidth.map((x)=>Math.floor(x * 2)
+    );
     astL6.linkDisps.forEach((linkDisp)=>{
         const pathSb = [];
         linkDisp.xys.forEach((xy, i)=>{
             if (i === 0) {
                 pathSb.push(`M ${xy[0]} ${xy[1]}`);
-            } else {
+            } else if (i === linkDisp.xys.length - 1) {
                 pathSb.push(` L ${xy[0]} ${xy[1]}`);
+            } else {
+                const bef = linkDisp.xys[i - 1].concat();
+                const aft = linkDisp.xys[i + 1].concat();
+                [
+                    bef,
+                    aft
+                ].forEach((target)=>{
+                    let targetAxis;
+                    if (xy[0] === target[0]) {
+                        targetAxis = 1;
+                    } else if (xy[1] === target[1]) {
+                        targetAxis = 0;
+                    } else {
+                        throw new Error(`[E070102] invalid astL6.`);
+                    }
+                    if (xy[targetAxis] > target[targetAxis]) {
+                        if (xy[targetAxis] - laneWidthDouble[targetAxis] > target[targetAxis]) {
+                            target[targetAxis] = xy[targetAxis] - laneWidth[targetAxis];
+                        } else {
+                            target[targetAxis] = Math.floor((xy[targetAxis] + target[targetAxis]) / 2);
+                        }
+                    } else if (xy[targetAxis] < target[targetAxis]) {
+                        if (xy[targetAxis] + laneWidthDouble[targetAxis] < target[targetAxis]) {
+                            target[targetAxis] = xy[targetAxis] + laneWidth[targetAxis];
+                        } else {
+                            target[targetAxis] = Math.floor((xy[targetAxis] + target[targetAxis]) / 2);
+                        }
+                    } else {
+                        return;
+                    }
+                });
+                pathSb.push(` L ${bef[0]} ${bef[1]} Q ${xy[0]} ${xy[1]} ${aft[0]} ${aft[1]}`);
             }
         });
         sb.push(`<path d="${pathSb.join('')}" fill="none" stroke="black"/>`);

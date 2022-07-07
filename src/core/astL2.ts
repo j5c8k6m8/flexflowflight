@@ -121,6 +121,6 @@ export type LinkAttr = {
 
 export type LaneAttr = {
     // RoadMain width ,RoadCross width
-    lane_width: [number, number];
-    lane_min: number;
+    laneWidth: [number, number];
+    laneMin: number;
 };
