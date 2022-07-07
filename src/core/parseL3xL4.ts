@@ -12,14 +12,19 @@ type itemIdGen = {
 type Options = {
     pre?: (arg: AstL3) => Promise<AstL3>,
     post?: (arg: AstL4) => Promise<AstL4>,
+    mainLaneMin?: number,
+    crossLaneMin?: number,
+
 }
 
 // FILE ERROR ID = '04'
-export const parse = async (astL3: AstL3, { pre, post }: Options = {}): Promise<AstL4> => {
+export const parse = async (astL3: AstL3, { pre, post, mainLaneMin, crossLaneMin }: Options = {}): Promise<AstL4> => {
     // FUNCTION ERROR ID = '01'
     if (pre) {
         astL3 = await pre(astL3);
     }
+    const mainLaneMinNum: number = mainLaneMin || 0;
+    const crossLaneMinNum: number = crossLaneMin || 0;
 
     const nodes = astL3.nodes;
     const nodeAttrs = astL3.nodeAttrs;
@@ -92,6 +97,8 @@ export const parse = async (astL3: AstL3, { pre, post }: Options = {}): Promise<
         nodeMainMaxLaneMap,
         nodeCrossMaxLaneMap,
         [],
+        mainLaneMinNum,
+        crossLaneMinNum,
     );
 
     links.forEach(link => {
@@ -192,7 +199,9 @@ const setNodeMap = (
     n2i: ItemId[],
     nodeMainMaxLaneMap: Map<NodeId, Map<number, Map<GateNo, LinkId[]>>>,
     nodeCrossMaxLaneMap: Map<NodeId, [Map<GateNo, LinkId[]>, Map<GateNo, LinkId[]>]>,
-    mainItems: ItemId[]
+    mainItems: ItemId[],
+    mainLaneMinNum: number,
+    crossLaneMinNum: number,
 ): void => {
     // FUNCTION ERROR ID = '01'
     const node = nodes[nodeId];
@@ -257,14 +266,13 @@ const setNodeMap = (
                 throw new Error(`[E040201] invalid unreachable code.`);
             }
         }
-        // TODO
-        let crossFirstLength = 0;
+        let crossFirstLength = crossLaneMinNum;
         for (const key of nodeCrossMaxLane[0].keys()) {
-            if (key > crossFirstLength) {
-                crossFirstLength = key;
+            if (key + 1 > crossFirstLength) {
+                crossFirstLength = key + 1;
             }
         }
-        for (let i = 0; i < crossFirstLength + 1; i++) {
+        for (let i = 0; i < crossFirstLength; i++) {
             const itemId = getItemId(idGen, null);
             const links = nodeCrossMaxLane[0].get(i) || [];
             const load: RoadCross = {
@@ -281,16 +289,16 @@ const setNodeMap = (
             crossItems[0].push(load.itemId)
         }
         for (let i = 0; i < node.children.length; i++) {
-            let mainLength = 0;
+            let mainLength = mainLaneMinNum;
             const laneMap = nodeMainMaxLane.get(i);
             if (laneMap) {
                 for (const key of laneMap.keys()) {
-                    if (key > mainLength) {
-                        mainLength = key;
+                    if (key + 1 > mainLength) {
+                        mainLength = key + 1;
                     }
                 }
             }
-            for (let j = 0; j < mainLength + 1; j++) {
+            for (let j = 0; j < mainLength; j++) {
                 const itemId = getItemId(idGen, null);
                 const links = laneMap?.get(j) || [];
                 const load: RoadMain = {
@@ -321,19 +329,20 @@ const setNodeMap = (
                 nodeMainMaxLaneMap,
                 nodeCrossMaxLaneMap,
                 mainItems,
+                mainLaneMinNum,
+                crossLaneMinNum,
             );
         }
-        // TODO
-        let mainLength = 0;
+        let mainLength = mainLaneMinNum;
         const laneMap = nodeMainMaxLane.get(node.children.length);
         if (laneMap) {
             for (const key of laneMap.keys()) {
-                if (key > mainLength) {
-                    mainLength = key;
+                if (key + 1 > mainLength) {
+                    mainLength = key + 1;
                 }
             }
         }
-        for (let j = 0; j < mainLength + 1; j++) {
+        for (let j = 0; j < mainLength; j++) {
             const itemId = getItemId(idGen, null);
             const links = laneMap?.get(j) || [];
             const load: RoadMain = {
@@ -350,13 +359,13 @@ const setNodeMap = (
             items.push(load);
             mainItems.push(load.itemId)
         }
-        let crossLastLength = 0;
+        let crossLastLength = crossLaneMinNum;
         for (const key of nodeCrossMaxLane[1].keys()) {
-            if (key > crossLastLength) {
-                crossLastLength = key;
+            if (key + 1 > crossLastLength) {
+                crossLastLength = key + 1;
             }
         }
-        for (let i = 0; i < crossLastLength + 1; i++) {
+        for (let i = 0; i < crossLastLength; i++) {
             const itemId = getItemId(idGen, null);
             const links = nodeCrossMaxLane[1].get(i) || [];
             const load: RoadCross = {

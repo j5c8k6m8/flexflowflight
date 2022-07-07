@@ -2327,10 +2327,12 @@ const parse2 = async (astL2, { pre , post , calc  } = {})=>{
     }
     return astL3;
 };
-const parse3 = async (astL3, { pre , post  } = {})=>{
+const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=>{
     if (pre) {
         astL3 = await pre(astL3);
     }
+    const mainLaneMinNum = mainLaneMin || 0;
+    const crossLaneMinNum = crossLaneMin || 0;
     const nodes = astL3.nodes;
     const nodeAttrs = astL3.nodeAttrs;
     const links1 = astL3.links;
@@ -2388,7 +2390,7 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
             }
         });
     });
-    setNodeMap(0, items, nodes, nodeAttrs, links1, linkRoutes, astL3.laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, []);
+    setNodeMap(0, items, nodes, nodeAttrs, links1, linkRoutes, astL3.laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, [], mainLaneMinNum, crossLaneMinNum);
     links1.forEach((link)=>{
         const linkRoute = linkRoutes[link.linkId];
         const route = linkRoute.route.map((r)=>{
@@ -2476,7 +2478,7 @@ const parse3 = async (astL3, { pre , post  } = {})=>{
     }
     return astL4;
 };
-const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems)=>{
+const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems, mainLaneMinNum, crossLaneMinNum)=>{
     const node = nodes[nodeId];
     const nodeAttr = nodeAttrs[nodeId];
     const nodeType = node.type;
@@ -2547,13 +2549,13 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 throw new Error(`[E040201] invalid unreachable code.`);
             }
         }
-        let crossFirstLength = 0;
+        let crossFirstLength = crossLaneMinNum;
         for (const key of nodeCrossMaxLane[0].keys()){
-            if (key > crossFirstLength) {
-                crossFirstLength = key;
+            if (key + 1 > crossFirstLength) {
+                crossFirstLength = key + 1;
             }
         }
-        for(let i = 0; i < crossFirstLength + 1; i++){
+        for(let i = 0; i < crossFirstLength; i++){
             const itemId = getItemId(idGen, null);
             const links = nodeCrossMaxLane[0].get(i) || [];
             const load = {
@@ -2571,16 +2573,16 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             crossItems[0].push(load.itemId);
         }
         for(let i1 = 0; i1 < node.children.length; i1++){
-            let mainLength = 0;
+            let mainLength = mainLaneMinNum;
             const laneMap = nodeMainMaxLane.get(i1);
             if (laneMap) {
                 for (const key of laneMap.keys()){
-                    if (key > mainLength) {
-                        mainLength = key;
+                    if (key + 1 > mainLength) {
+                        mainLength = key + 1;
                     }
                 }
             }
-            for(let j = 0; j < mainLength + 1; j++){
+            for(let j = 0; j < mainLength; j++){
                 const itemId = getItemId(idGen, null);
                 const links = laneMap?.get(j) || [];
                 const load = {
@@ -2598,18 +2600,18 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 items.push(load);
                 mainItems.push(load.itemId);
             }
-            setNodeMap(node.children[i1], items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems);
+            setNodeMap(node.children[i1], items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems, mainLaneMinNum, crossLaneMinNum);
         }
-        let mainLength = 0;
+        let mainLength = mainLaneMinNum;
         const laneMap = nodeMainMaxLane.get(node.children.length);
         if (laneMap) {
             for (const key of laneMap.keys()){
-                if (key > mainLength) {
-                    mainLength = key;
+                if (key + 1 > mainLength) {
+                    mainLength = key + 1;
                 }
             }
         }
-        for(let j = 0; j < mainLength + 1; j++){
+        for(let j = 0; j < mainLength; j++){
             const itemId = getItemId(idGen, null);
             const links = laneMap?.get(j) || [];
             const load = {
@@ -2627,13 +2629,13 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             items.push(load);
             mainItems.push(load.itemId);
         }
-        let crossLastLength = 0;
+        let crossLastLength = crossLaneMinNum;
         for (const key1 of nodeCrossMaxLane[1].keys()){
-            if (key1 > crossLastLength) {
-                crossLastLength = key1;
+            if (key1 + 1 > crossLastLength) {
+                crossLastLength = key1 + 1;
             }
         }
-        for(let i2 = 0; i2 < crossLastLength + 1; i2++){
+        for(let i2 = 0; i2 < crossLastLength; i2++){
             const itemId = getItemId(idGen, null);
             const links = nodeCrossMaxLane[1].get(i2) || [];
             const load = {
