@@ -13,10 +13,24 @@ const containerDirection = [
 const isContainerDirection = (c)=>{
     return containerDirection.includes(c);
 };
+const align = [
+    'start',
+    'center',
+    'end'
+];
+const isAlign = (c)=>{
+    return align.includes(c);
+};
 const parseUnitAttr = (map)=>{
     const ret = {};
     if (map.has('direction')) {
         ret.direction = getDirection(map);
+    }
+    if (map.has('align_items')) {
+        ret.alignItems = getAlign('align_items', map);
+    }
+    if (map.has('align_self')) {
+        ret.alignSelf = getAlign('align_self', map);
     }
     return ret;
 };
@@ -34,6 +48,12 @@ const parseGroupAttr = (map)=>{
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);
     }
+    if (map.has('align_items')) {
+        ret.alignItems = getAlign('align_items', map);
+    }
+    if (map.has('align_self')) {
+        ret.alignSelf = getAlign('align_self', map);
+    }
     return ret;
 };
 const parseCellAttr = (map)=>{
@@ -47,6 +67,9 @@ const parseCellAttr = (map)=>{
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);
     }
+    if (map.has('align_self')) {
+        ret.alignSelf = getAlign('align_self', map);
+    }
     return ret;
 };
 const parseLinkAttr = (map)=>{
@@ -57,21 +80,31 @@ const parseLinkAttr = (map)=>{
     return ret;
 };
 const addRootAttr = (ast, map)=>{
-    const attr = ast.attr || {};
+    ast.attr = ast.attr || {};
     const css = map.get('css');
     if (css) {
-        attr.css = css;
-        ast.attr = attr;
+        ast.attr.css = css;
+    }
+    const alignItems = map.get('align_items');
+    if (alignItems) {
+        ast.attr.alignItems = getAlign('align_items', map);
     }
     const direction = getDirection(map);
     if (direction) {
-        attr.direction = direction;
-        ast.attr = attr;
+        ast.attr.direction = direction;
     }
 };
 const getDirection = (map)=>{
     const t = map.get('direction');
     if (isContainerDirection(t)) {
+        return t;
+    } else {
+        return null;
+    }
+};
+const getAlign = (key, map)=>{
+    const t = map.get(key);
+    if (isAlign(t)) {
         return t;
     } else {
         return null;
@@ -1223,7 +1256,7 @@ const parseRootUnitAttr = (l1, nodeId)=>{
             0,
             0
         ],
-        align: 'center'
+        align: 'start'
     };
 };
 const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
@@ -1234,7 +1267,7 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
     let margin = docAttr.group_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align1 = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -1258,7 +1291,7 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
             margin = l1.attr.margin;
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
-            align = l1.attr.alignSelf;
+            align1 = l1.attr.alignSelf;
         }
     }
     return {
@@ -1278,13 +1311,13 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
             padding[2] + border[2] + margin[2],
             padding[3] + border[3] + margin[3], 
         ],
-        align: align
+        align: align1
     };
 };
 const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     let direction = null;
     let margin = docAttr.unit_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align2 = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -1293,7 +1326,7 @@ const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
             margin = l1.attr.margin;
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
-            align = l1.attr.alignSelf;
+            align2 = l1.attr.alignSelf;
         }
     }
     return {
@@ -1303,7 +1336,7 @@ const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
         direction: direction,
         margin: margin,
         space: margin,
-        align: align
+        align: align2
     };
 };
 const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeFunc)=>{
@@ -1313,7 +1346,7 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
     let margin = docAttr.cell_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align3 = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
@@ -1346,7 +1379,7 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
         border: border,
         margin: margin,
         size: size,
-        align: align
+        align: align3
     };
 };
 const getCellSize = async (l1, padding, border, margin, docAttr, userDefineTextSizeFunc)=>{

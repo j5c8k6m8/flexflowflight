@@ -53,15 +53,15 @@ export type RootAttr = {
     char_width?: null | number;  // TODO
     char_height?: null | number;  // TODO
     link_border?: null | number;  // TODO
-    alignItems?: null | Align;  // TODO
+    alignItems?: null | Align;
 };
 export type GroupAttr = {
     direction?: null | ContainerDirection;
     disp?: null | string;
     resource?: null | string;
     tag?: null | string[];
-    alignItems?: null | Align;  // TODO
-    alignSelf?: null | Align;  // TODO
+    alignItems?: null | Align;
+    alignSelf?: null | Align;
     padding?: null | EdgeNumber;  // TODO
     border?: null | EdgeNumber;  // TODO
     margin?: null | EdgeNumber;  // TODO
@@ -70,8 +70,8 @@ export type GroupAttr = {
 };
 export type UnitAttr = {
     direction?: null | ContainerDirection;
-    alignItems?: null | Align;  // TODO
-    alignSelf?: null | Align;  // TODO
+    alignItems?: null | Align;
+    alignSelf?: null | Align;
     margin?: null | EdgeNumber;  // TODO
     class?: null | string;  // TODO
     style?: null | string;  // TODO
@@ -80,7 +80,7 @@ export type CellAttr = {
     disp?: null | string;
     resource?: null | string;
     tag?: null | string[];
-    alignSelf?: null | Align;  // TODO
+    alignSelf?: null | Align;
     padding?: null | EdgeNumber;  // TODO
     border?: null | EdgeNumber;  // TODO
     margin?: null | EdgeNumber;  // TODO

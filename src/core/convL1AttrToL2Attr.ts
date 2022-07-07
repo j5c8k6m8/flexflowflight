@@ -87,7 +87,7 @@ export const parseRootUnitAttr = (l1: AstL1, nodeId: NodeId): UnitAttrL2 => {
         direction: direction,
         margin: [0, 0, 0, 0],
         space: [0, 0, 0, 0],
-        align: 'center',
+        align: 'start',
     };
 }
 
@@ -99,7 +99,7 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
     let margin = docAttr.group_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -150,7 +150,7 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
 export const parseUnitAttr = (l1: UnitL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr): UnitAttrL2 => {
     let direction = null;
     let margin = docAttr.unit_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('direction' in l1.attr && l1.attr.direction) {
             direction = l1.attr.direction;
@@ -180,7 +180,7 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
     let margin = docAttr.cell_margin;
-    let align = parentL1.attr?.alignItems || 'center';
+    let align = parentL1.attr?.alignItems || 'start';
     if ('attr' in l1 && l1.attr) {
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
