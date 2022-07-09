@@ -14,7 +14,8 @@ export type ContainerItem = GroupItem | UnitItem;
 export type GroupItem = {
     itemId: ItemId;
     type: "Group";
-    compass: Compass;
+    compassItems: Compass;
+    compassSelf: Compass;
     parents: ItemId[];
     siblings: ItemId[];
     links: [LinkId[], LinkId[]];
@@ -26,10 +27,11 @@ export type GroupItem = {
     align: Align;
 };
 
-export type UnitItem =  {
+export type UnitItem = {
     itemId: ItemId;
     type: "Unit";
-    compass: Compass;
+    compassItems: Compass;
+    compassSelf: Compass;
     parents: ItemId[];
     siblings: ItemId[];
     mainItems: ItemId[];
@@ -41,6 +43,7 @@ export type UnitItem =  {
 export type CellItem = {
     itemId: ItemId;
     type: "Cell";
+    compassSelf: Compass;
     parents: ItemId[];
     siblings: ItemId[];
     links: [LinkId[], LinkId[]];

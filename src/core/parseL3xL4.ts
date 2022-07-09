@@ -227,7 +227,8 @@ const setNodeMap = (
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
-                compass: node.compass,
+                compassItems: node.compassItems,
+                compassSelf: node.compassSelf,
                 parents: node.parents.map(p => n2i[p]),
                 siblings: [],  // set after
                 links: node.links,
@@ -244,7 +245,8 @@ const setNodeMap = (
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
-                compass: node.compass,
+                compassItems: node.compassItems,
+                compassSelf: node.compassSelf,
                 parents: node.parents.map(p => n2i[p]),
                 siblings: [],  // set after
                 mainItems: mainItems,
@@ -391,6 +393,7 @@ const setNodeMap = (
         const nodeItem: CellItem = {
             itemId: nodeItemId,
             type: node.type,
+            compassSelf: node.compassSelf,
             parents: node.parents.map(p => n2i[p]),
             siblings: [],  // set after
             links: node.links,

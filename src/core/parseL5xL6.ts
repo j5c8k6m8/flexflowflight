@@ -30,7 +30,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
             if (!(parentItemType === 'Group' || parentItemType === "Unit")) {
                 throw new Error(`[E060101] invalid unreachable code.`);
             }
-            const compass = parentItem.compass;
+            const compass = parentItem.compassItems;
             const compassAxis = getCompassAxis(compass);
             if (compass[0] <= 1) {
                 xy[compassAxis[0]] = parentItemLoca.xy[compassAxis[0]] + itemLocaL5.coord[0];
@@ -70,12 +70,12 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
             const itemLoca = itemLocas[item.itemId];
             groupDisps.push({
                 xy: [
-                    itemLoca.xy[0] + item.space[0],
-                    itemLoca.xy[1] + item.space[1],
+                    itemLoca.xy[0] + groupAttr.margin[0],
+                    itemLoca.xy[1] + groupAttr.margin[1],
                 ],
                 size: [
-                    itemLoca.size[0] - (item.space[0] + item.space[2]),
-                    itemLoca.size[1] - (item.space[1] + item.space[3]),
+                    itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]),
+                    itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]),
                 ],
                 text: groupAttr.disp,
             });
@@ -130,7 +130,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
             if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
                 throw new Error(`[E060108] invalid unreachable code.`);
             }
-            const compassAxis = getCompassAxis(parentItem.compass);
+            const compassAxis = getCompassAxis(parentItem.compassItems);
             if (compassAxis[0] !== item.axis) {
                 currentXY = [
                     currentXY[0],
@@ -195,7 +195,7 @@ const getGateXY = (itemId: ItemId, direct: Direct, gate: GateNo, items: Item[], 
     if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
         throw new Error(`[E060201] invalid unreachable code.`);
     }
-    const compass = getCompassFull(parentItem.compass);
+    const compass = getCompassFull(parentItem.compassItems);
     direct = compass[direct];
     const itemLoca = itemLocas[itemId];
     const itemType = item.type;
@@ -207,12 +207,12 @@ const getGateXY = (itemId: ItemId, direct: Direct, gate: GateNo, items: Item[], 
         throw new Error(`[E060203] invalid unreachable code.`);
     }
     const nodeAttr = nodeAttrs[nodeId];
-    if (nodeAttr.type !== 'Cell') {
+    if (!(nodeAttr.type === 'Group' || nodeAttr.type === 'Cell')) {
         throw new Error(`[E060204] invalid unreachable code.`);
     }
     const gateNum = item.bnGates[direct];
     const allGateLen = gateNum === 0 ? 0 : (gateNum - 1) * docAttr.gate_gap[direct];
-    const targetGateLen = (gate === 0 ? 0 : (gate - 1) * docAttr.gate_gap[direct])
+    const targetGateLen = (gate === 0 ? 0 : (gate - 1) * docAttr.gate_gap[direct]);
     if (direct === 0) {
         return [
             itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[direct],

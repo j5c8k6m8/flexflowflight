@@ -1130,9 +1130,9 @@ const parseDocAttr = (l1)=>{
     let css = null;
     let cell_padding = [
         6,
+        2,
         6,
-        6,
-        6
+        2
     ];
     let cell_border = [
         2,
@@ -1153,10 +1153,10 @@ const parseDocAttr = (l1)=>{
         0
     ];
     let group_padding = [
-        4,
-        4,
-        4,
-        4
+        2,
+        2,
+        2,
+        2
     ];
     let group_border = [
         2,
@@ -1365,6 +1365,9 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
         }
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
+        }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align3 = l1.attr.alignSelf;
         }
     }
     const size = await getCellSize(l1, padding, border, margin, docAttr, userDefineTextSizeFunc);
@@ -1600,7 +1603,11 @@ const parseRootUnit = (l1, nodeId)=>{
     return {
         nodeId: nodeId,
         type: "Unit",
-        compass: getRootCompass(l1),
+        compassItems: getRootCompass(l1),
+        compassSelf: [
+            0,
+            1
+        ],
         parents: [],
         children: [],
         siblings: [
@@ -1616,11 +1623,12 @@ const parseRootUnit = (l1, nodeId)=>{
 };
 const parseGroup1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, groupAttr)=>{
     const compass = getGroupCompass(l1, parent);
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Group",
-        compass: compass,
+        compassItems: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         children: [],
         siblings: parent.children,
@@ -1633,11 +1641,12 @@ const parseGroup1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, 
 };
 const parseUnit1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, unitAttr)=>{
     const compass = getUnitCompass(l1, parent);
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Unit",
-        compass: compass,
+        compassItems: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         children: [],
         siblings: parent.children,
@@ -1645,12 +1654,11 @@ const parseUnit1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, u
     };
 };
 const parseCell1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId)=>{
-    const compass = getCellCompass(l1, parent);
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Cell",
-        compass: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         siblings: parent.children,
         links: [
@@ -1841,24 +1849,8 @@ const getRootCompass = (Group)=>{
     }
 };
 const getGroupCompass = (Group, parent)=>{
-    if (Group.attr?.direction === 'cross') {
-        const first = parent.compass[0];
-        if (first === 0 || first === 2) {
-            const second = parent.compass[1];
-            return [
-                second,
-                first
-            ];
-        } else if (first === 1 || first === 3) {
-            const second = parent.compass[1];
-            return [
-                second,
-                first
-            ];
-        } else {
-            const _ = first;
-            return _;
-        }
+    if (Group.attr?.direction === 'main') {
+        return parent.compassItems;
     } else if (Group.attr?.direction === 'row') {
         return [
             0,
@@ -1880,12 +1872,28 @@ const getGroupCompass = (Group, parent)=>{
             0
         ];
     } else {
-        return parent.compass;
+        const first = parent.compassItems[0];
+        if (first === 0 || first === 2) {
+            const second = parent.compassItems[1];
+            return [
+                second,
+                first
+            ];
+        } else if (first === 1 || first === 3) {
+            const second = parent.compassItems[1];
+            return [
+                second,
+                first
+            ];
+        } else {
+            const _ = first;
+            return _;
+        }
     }
 };
 const getUnitCompass = (Unit, parent)=>{
     if (Unit.attr?.direction === 'main') {
-        return parent.compass;
+        return parent.compassItems;
     } else if (Unit.attr?.direction === 'row') {
         return [
             0,
@@ -1907,15 +1915,15 @@ const getUnitCompass = (Unit, parent)=>{
             0
         ];
     } else {
-        const first = parent.compass[0];
+        const first = parent.compassItems[0];
         if (first === 0 || first === 2) {
-            const second = parent.compass[1];
+            const second = parent.compassItems[1];
             return [
                 second,
                 first
             ];
         } else if (first === 1 || first === 3) {
-            const second = parent.compass[1];
+            const second = parent.compassItems[1];
             return [
                 second,
                 first
@@ -1925,9 +1933,6 @@ const getUnitCompass = (Unit, parent)=>{
             return _;
         }
     }
-};
-const getCellCompass = (_cell, parent)=>{
-    return parent.compass;
 };
 const getLinkDirect = (direction)=>{
     return [
@@ -1950,43 +1955,36 @@ const getDirect = (direction)=>{
     }
 };
 const getEdge = (compass, siblingIndex, parentCompass, parentChildNum, parentEdge)=>{
-    const mappingCompassFull = getMappingCompassFull(compass, parentCompass);
-    let tmpEdge;
+    const mappingCompassFull = getMappingCompassFull(parentCompass, compass);
     if (parentChildNum === 1) {
-        tmpEdge = [
-            parentEdge[0] + 1,
-            parentEdge[1] + 1,
-            parentEdge[2] + 1,
-            parentEdge[3] + 1, 
+        return [
+            parentEdge[mappingCompassFull[0]] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
+            parentEdge[mappingCompassFull[2]] + 1,
+            parentEdge[mappingCompassFull[3]] + 1, 
         ];
     } else if (siblingIndex === 0) {
-        tmpEdge = [
+        return [
             1,
-            parentEdge[1] + 1,
-            parentEdge[2] + 1,
-            parentEdge[3] + 1, 
+            parentEdge[mappingCompassFull[1]] + 1,
+            parentEdge[mappingCompassFull[2]] + 1,
+            parentEdge[mappingCompassFull[3]] + 1, 
         ];
     } else if (siblingIndex === parentChildNum - 1) {
-        tmpEdge = [
-            parentEdge[0] + 1,
-            parentEdge[1] + 1,
+        return [
+            parentEdge[mappingCompassFull[0]] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
             1,
-            parentEdge[3] + 1, 
+            parentEdge[mappingCompassFull[3]] + 1, 
         ];
     } else {
-        tmpEdge = [
+        return [
             1,
-            parentEdge[1] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
             1,
-            parentEdge[3] + 1, 
+            parentEdge[mappingCompassFull[3]] + 1, 
         ];
     }
-    return [
-        tmpEdge[mappingCompassFull[0]],
-        tmpEdge[mappingCompassFull[1]],
-        tmpEdge[mappingCompassFull[2]],
-        tmpEdge[mappingCompassFull[3]], 
-    ];
 };
 const calcRoute = async (nodes, links, _laneAttr)=>{
     const linkRoutes = [];
@@ -2141,6 +2139,14 @@ const getRoutesWithoutLane = (node, direct, parentIndex, currentRoute, routes, d
         throw new Error(`[E030201] nest too deep.`);
     }
     callNum++;
+    const parentNodeId = node.parents[node.parents.length - 1];
+    const parentNode = nodeMap[parentNodeId];
+    if (!parentNode) {
+        throw new Error(`[E030205] asgR1 is invalid.`);
+    }
+    if (parentNode.type !== 'Group' && parentNode.type !== 'Unit') {
+        throw new Error(`[E030206] asgR1 is invalid.`);
+    }
     let targetIndex;
     if (node.bnParents[direct] - 1 >= parentIndex) {
         targetIndex = parentIndex;
@@ -2160,7 +2166,7 @@ const getRoutesWithoutLane = (node, direct, parentIndex, currentRoute, routes, d
     if (targetNode.type !== 'Group' && targetNode.type !== 'Unit') {
         throw new Error(`[E030204] asgR1 is invalid.`);
     }
-    const railDirect = getMappingCompassFull(node.compass, targetNode.compass)[direct];
+    const railDirect = getMappingCompassFull(parentNode.compassItems, targetNode.compassItems)[direct];
     let siblingIndex;
     if (targetIndex > 0) {
         const targetChildNodeId = [
@@ -2207,9 +2213,18 @@ const getRoutesWithoutLane = (node, direct, parentIndex, currentRoute, routes, d
         }
         return;
     } else {
+        const targetParentNodeId = targetNode.parents[targetNode.parents.length - 1];
+        const targetParentNode = nodeMap[targetParentNodeId];
+        if (!targetParentNode) {
+            throw new Error(`[E030207] asgR1 is invalid.`);
+        }
+        if (targetParentNode.type !== 'Group' && targetParentNode.type !== 'Unit') {
+            throw new Error(`[E030208] asgR1 is invalid.`);
+        }
+        const nextMappingCompassFull = getMappingCompassFull(targetNode.compassItems, targetParentNode.compassItems);
         directPriority.forEach((d)=>{
             if (!isSameAxisDirect(d, railDirect)) {
-                getRoutesWithoutLane(targetNode, d, parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
+                getRoutesWithoutLane(targetNode, nextMappingCompassFull[d], parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
             }
         });
     }
@@ -2508,7 +2523,8 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
-                compass: node.compass,
+                compassItems: node.compassItems,
+                compassSelf: node.compassSelf,
                 parents: node.parents.map((p)=>n2i[p]
                 ),
                 siblings: [],
@@ -2526,7 +2542,8 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             nodeItem = {
                 itemId: itemId,
                 type: node.type,
-                compass: node.compass,
+                compassItems: node.compassItems,
+                compassSelf: node.compassSelf,
                 parents: node.parents.map((p)=>n2i[p]
                 ),
                 siblings: [],
@@ -2660,6 +2677,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
         const nodeItem = {
             itemId: nodeItemId,
             type: node.type,
+            compassSelf: node.compassSelf,
             parents: node.parents.map((p)=>n2i[p]
             ),
             siblings: [],
@@ -2746,7 +2764,7 @@ const getCalcSizeRecursive = (itemId1, items, sizes)=>{
             0,
             0
         ];
-        const compassAxis = getCompassAxis(item1.compass);
+        const compassAxis = getCompassAxis(item1.compassItems);
         item1.crossItems.forEach((eachCrossItem)=>{
             eachCrossItem.forEach((itemId)=>{
                 const item = items[itemId];
@@ -2817,7 +2835,7 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
     const item2 = items[itemId2];
     const itemType2 = item2.type;
     if (itemType2 === 'Group' || itemType2 === 'Unit') {
-        const compassAxis = getCompassAxis(item2.compass);
+        const compassAxis = getCompassAxis(item2.compassItems);
         const mainCood = item2.space[compassAxis[0]];
         let crossCood = item2.space[compassAxis[1]];
         item2.crossItems[0].forEach((itemId)=>{
@@ -2840,7 +2858,7 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
         let mainItemMainCood = mainCood;
         const mainItemCrossCood = crossCood;
         let maxMainItemWidth = 0;
-        item2.mainItems.forEach((itemId, i)=>{
+        item2.mainItems.forEach((itemId)=>{
             const size = sizes[itemId];
             if (maxMainItemWidth < size[compassAxis[1]]) {
                 maxMainItemWidth = size[compassAxis[1]];
@@ -2864,7 +2882,7 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
             };
             crossCood += size[compassAxis[1]];
         });
-        item2.mainItems.forEach((itemId, i)=>{
+        item2.mainItems.forEach((itemId)=>{
             const item = items[itemId];
             const size = sizes[itemId];
             const itemType = item.type;
@@ -2982,7 +3000,7 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
             if (!(parentItemType === 'Group' || parentItemType === "Unit")) {
                 throw new Error(`[E060101] invalid unreachable code.`);
             }
-            const compass = parentItem.compass;
+            const compass = parentItem.compassItems;
             const compassAxis = getCompassAxis(compass);
             if (compass[0] <= 1) {
                 xy[compassAxis[0]] = parentItemLoca.xy[compassAxis[0]] + itemLocaL5.coord[0];
@@ -3020,12 +3038,12 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
             const itemLoca = itemLocas[item.itemId];
             groupDisps.push({
                 xy: [
-                    itemLoca.xy[0] + item.space[0],
-                    itemLoca.xy[1] + item.space[1], 
+                    itemLoca.xy[0] + groupAttr.margin[0],
+                    itemLoca.xy[1] + groupAttr.margin[1], 
                 ],
                 size: [
-                    itemLoca.size[0] - (item.space[0] + item.space[2]),
-                    itemLoca.size[1] - (item.space[1] + item.space[3]), 
+                    itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]),
+                    itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]), 
                 ],
                 text: groupAttr.disp
             });
@@ -3076,7 +3094,7 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
             if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
                 throw new Error(`[E060108] invalid unreachable code.`);
             }
-            const compassAxis = getCompassAxis(parentItem.compass);
+            const compassAxis = getCompassAxis(parentItem.compassItems);
             if (compassAxis[0] !== item.axis) {
                 currentXY = [
                     currentXY[0],
@@ -3138,7 +3156,7 @@ const getGateXY = (itemId, direct, gate, items, itemLocas, nodeAttrs, i2n, docAt
     if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
         throw new Error(`[E060201] invalid unreachable code.`);
     }
-    const compass = getCompassFull(parentItem.compass);
+    const compass = getCompassFull(parentItem.compassItems);
     direct = compass[direct];
     const itemLoca = itemLocas[itemId];
     const itemType = item.type;
@@ -3150,7 +3168,7 @@ const getGateXY = (itemId, direct, gate, items, itemLocas, nodeAttrs, i2n, docAt
         throw new Error(`[E060203] invalid unreachable code.`);
     }
     const nodeAttr = nodeAttrs[nodeId];
-    if (nodeAttr.type !== 'Cell') {
+    if (!(nodeAttr.type === 'Group' || nodeAttr.type === 'Cell')) {
         throw new Error(`[E060204] invalid unreachable code.`);
     }
     const gateNum = item.bnGates[direct];

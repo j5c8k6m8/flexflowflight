@@ -2,17 +2,17 @@ import { NodeId, EdgeNumber } from "./astC0.ts"
 import { Name } from "./astC1.ts"
 import { AstL1, Group as GroupL1, Unit as UnitL1, Container as ContainerL1, Cell as CellL1, Link as LinkL1 } from "./astL1.ts"
 import { Link as LinkL2 } from "./astL2.ts"
-import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, ContainerAttr as ContainerAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LaneAttr as LaneAttrL2 } from "./astL2.ts"
+import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LaneAttr as LaneAttrL2 } from "./astL2.ts"
 
 export type TextSizeFunc = (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>;
 
 export const parseDocAttr = (l1: AstL1): DocAttr => {
     let css = null;
-    let cell_padding: EdgeNumber = [6, 6, 6, 6];
+    let cell_padding: EdgeNumber = [6, 2, 6, 2];
     let cell_border: EdgeNumber = [2, 2, 2, 2];
     let cell_margin: EdgeNumber = [10, 10, 10, 10];
     let unit_margin: EdgeNumber = [0, 0, 0, 0];
-    let group_padding: EdgeNumber = [4, 4, 4, 4];
+    let group_padding: EdgeNumber = [2, 2, 2, 2];
     let group_border: EdgeNumber = [2, 2, 2, 2];
     let group_margin: EdgeNumber = [4, 4, 4, 4];
     let gate_gap: EdgeNumber = [8, 8, 8, 8];
@@ -199,6 +199,9 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
         }
         if ('margin' in l1.attr && l1.attr.margin) {
             margin = l1.attr.margin;
+        }
+        if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
+            align = l1.attr.alignSelf;
         }
     }
     const size = await getCellSize(l1, padding, border, margin, docAttr, userDefineTextSizeFunc);

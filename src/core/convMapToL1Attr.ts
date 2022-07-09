@@ -16,7 +16,7 @@ export const parseUnitAttr = (map: Map<string, string | null>): UnitAttr => {
 }
 
 export const parseGroupAttr = (map: Map<string, string | null>): GroupAttr => {
-    const ret : GroupAttr = {};
+    const ret: GroupAttr = {};
     if (map.has('direction')) {
         ret.direction = getDirection(map);
     }
@@ -56,7 +56,7 @@ export const parseCellAttr = (map: Map<string, string | null>): CellAttr => {
 }
 
 export const parseLinkAttr = (map: Map<string, string | null>): LinkAttr => {
-    const ret : LinkAttr = {};
+    const ret: LinkAttr = {};
     if (map.has('disp')) {
         ret.disp = map.get('disp');
     }

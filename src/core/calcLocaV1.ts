@@ -1,4 +1,4 @@
-import { Size, ItemId, Coordinate, getCompassAxis } from "./astC0.ts"
+import { Size, ItemId, getCompassAxis } from "./astC0.ts"
 import { Item } from "./astL4.ts"
 import { ItemLoca } from "./astL5.ts"
 
@@ -32,7 +32,7 @@ const getCalcSizeRecursive = (itemId: ItemId, items: Item[], sizes: Size[]): Siz
     } else if (itemType === 'Group' || itemType === 'Unit') {
         let maxMainItemWidth = 0;
         const size: Size = [0, 0];
-        const compassAxis = getCompassAxis(item.compass);
+        const compassAxis = getCompassAxis(item.compassItems);
         item.crossItems.forEach(eachCrossItem => {
             eachCrossItem.forEach(itemId => {
                 const item = items[itemId];
@@ -101,7 +101,7 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
     const item = items[itemId];
     const itemType = item.type;
     if (itemType === 'Group' || itemType === 'Unit') {
-        const compassAxis = getCompassAxis(item.compass);
+        const compassAxis = getCompassAxis(item.compassItems);
         const mainCood = item.space[compassAxis[0]];
         let crossCood = item.space[compassAxis[1]];
         item.crossItems[0].forEach(itemId => {
@@ -121,7 +121,7 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
         let mainItemMainCood = mainCood;
         const mainItemCrossCood = crossCood;
         let maxMainItemWidth = 0;
-        item.mainItems.forEach((itemId, i) => {
+        item.mainItems.forEach(itemId => {
             const size = sizes[itemId];
             if (maxMainItemWidth < size[compassAxis[1]]) {
                 maxMainItemWidth = size[compassAxis[1]];
@@ -142,7 +142,7 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
             }
             crossCood += size[compassAxis[1]];
         });
-        item.mainItems.forEach((itemId, i) => {
+        item.mainItems.forEach(itemId => {
             const item = items[itemId];
             const size = sizes[itemId];
             const itemType = item.type;

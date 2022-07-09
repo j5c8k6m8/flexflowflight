@@ -18,7 +18,7 @@ export type RailCrossWithoutLane = {
 
 // FILE ERROR ID = '21'
 // deno-lint-ignore require-await
-export const calcRoute = async(nodes: Node[], links: Link[], _laneAttr: LaneAttr): Promise<LinkRoute[]> => {
+export const calcRoute = async (nodes: Node[], links: Link[], _laneAttr: LaneAttr): Promise<LinkRoute[]> => {
     // FUNCTION ERROR ID = '01'
     const linkRoutes: LinkRoute[] = []
 
@@ -106,7 +106,7 @@ export const calcRoute = async(nodes: Node[], links: Link[], _laneAttr: LaneAttr
                 const _: never = axis;
                 return _;
             }
-            
+
         });
 
         let frNodeEntryLane = nodeEntryLaneMap.get(link.box[0]);
@@ -140,6 +140,14 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
         throw new Error(`[E030201] nest too deep.`);
     }
     callNum++;
+    const parentNodeId = node.parents[node.parents.length - 1];
+    const parentNode = nodeMap[parentNodeId];
+    if (!parentNode) {
+        throw new Error(`[E030205] asgR1 is invalid.`);
+    }
+    if (parentNode.type !== 'Group' && parentNode.type !== 'Unit') {
+        throw new Error(`[E030206] asgR1 is invalid.`);
+    }
     let targetIndex: number;
     if (node.bnParents[direct] - 1 >= parentIndex) {
         targetIndex = parentIndex;
@@ -157,7 +165,7 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
     if (targetNode.type !== 'Group' && targetNode.type !== 'Unit') {
         throw new Error(`[E030204] asgR1 is invalid.`);
     }
-    const railDirect = getMappingCompassFull(node.compass, targetNode.compass)[direct];
+    const railDirect = getMappingCompassFull(parentNode.compassItems, targetNode.compassItems)[direct];
     let siblingIndex;
     if (targetIndex > 0) {
         const targetChildNodeId = [...node.parents].reverse()[targetIndex - 1];
@@ -202,10 +210,19 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
         }
         return;
     } else {
+        const targetParentNodeId = targetNode.parents[targetNode.parents.length - 1];
+        const targetParentNode = nodeMap[targetParentNodeId];
+        if (!targetParentNode) {
+            throw new Error(`[E030207] asgR1 is invalid.`);
+        }
+        if (targetParentNode.type !== 'Group' && targetParentNode.type !== 'Unit') {
+            throw new Error(`[E030208] asgR1 is invalid.`);
+        }
+        const nextMappingCompassFull = getMappingCompassFull(targetNode.compassItems, targetParentNode.compassItems);
         directPriority.forEach(d => {
             if (!isSameAxisDirect(d, railDirect)) {
                 // recursive call
-                getRoutesWithoutLane(targetNode, d, parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
+                getRoutesWithoutLane(targetNode, nextMappingCompassFull[d], parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
             }
         });
     }

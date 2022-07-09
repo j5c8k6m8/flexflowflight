@@ -1,7 +1,7 @@
 import { NodeId, LinkId, Direct, Compass, getMappingCompassFull, EdgeNumber } from "./astC0.ts"
-import { Name, AccessName, Path, Direction } from "./astC1.ts"
+import { AccessName, Path, Direction } from "./astC1.ts"
 import { AstL1, Container as ContainerL1, Group as GroupL1, Unit as UnitL1, Cell as CellL1 } from "./astL1.ts"
-import { AstL2, NodeAttr, LinkAttr, GroupAttr, UnitAttr, CellAttr, DocAttr } from "./astL2.ts"
+import { AstL2, NodeAttr, LinkAttr, GroupAttr, UnitAttr, CellAttr } from "./astL2.ts"
 import { Container as ContainerL2, Group as GroupL2, Unit as UnitL2, Cell as CellL2, Link as LinkL2, Node as NodeL2 } from "./astL2.ts"
 import { parseDocAttr, parseRootUnitAttr, parseGroupAttr, parseUnitAttr, parseCellAttr, parseLinkAttr, parseLaneAttr, TextSizeFunc } from "./convL1AttrToL2Attr.ts"
 
@@ -179,7 +179,8 @@ export const parseRootUnit = (l1: AstL1, nodeId: NodeId): UnitL2 => {
     return {
         nodeId: nodeId,
         type: "Unit",
-        compass: getRootCompass(l1),
+        compassItems: getRootCompass(l1),
+        compassSelf: [0, 1],
         parents: [],
         children: [],
         siblings: [0],
@@ -190,11 +191,12 @@ export const parseRootUnit = (l1: AstL1, nodeId: NodeId): UnitL2 => {
 const parseGroup = (l1: GroupL1, parent: ContainerL2, parents: Array<number>, siblingIndex: number, parentChildNum: number, nodeId: NodeId, groupAttr: GroupAttr): GroupL2 => {
     // FUNCTION ERROR ID = '12'
     const compass = getGroupCompass(l1, parent);
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Group",
-        compass: compass,
+        compassItems: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         children: [],
         siblings: parent.children,
@@ -206,11 +208,12 @@ const parseGroup = (l1: GroupL1, parent: ContainerL2, parents: Array<number>, si
 const parseUnit = (l1: UnitL1, parent: ContainerL2, parents: Array<number>, siblingIndex: number, parentChildNum: number, nodeId: NodeId, unitAttr: UnitAttr): UnitL2 => {
     // FUNCTION ERROR ID = '13'
     const compass = getUnitCompass(l1, parent);
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Unit",
-        compass: compass,
+        compassItems: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         children: [],
         siblings: parent.children,
@@ -220,12 +223,11 @@ const parseUnit = (l1: UnitL1, parent: ContainerL2, parents: Array<number>, sibl
 
 const parseCell = (l1: CellL1, parent: ContainerL2, parents: Array<number>, siblingIndex: number, parentChildNum: number, nodeId: NodeId): CellL2 => {
     // FUNCTION ERROR ID = '14'
-    const compass = getCellCompass(l1, parent)
-    const edge = getEdge(compass, siblingIndex, parent.compass, parentChildNum, parent.bnParents);
+    const edge = getEdge(parent.compassItems, siblingIndex, parent.compassSelf, parentChildNum, parent.bnParents);
     return {
         nodeId: nodeId,
         type: "Cell",
-        compass: compass,
+        compassSelf: parent.compassItems,
         parents: parents,
         siblings: parent.children,
         links: [[], []],
@@ -411,6 +413,32 @@ const getRootCompass = (Group: AstL1): Compass => {
 }
 
 const getGroupCompass = (Group: GroupL1, parent: ContainerL2): Compass => {
+    if (Group.attr?.direction === 'main') {
+        return parent.compassItems;
+    } else if (Group.attr?.direction === 'row') {
+        return [0, 1];
+    } else if (Group.attr?.direction === 'column') {
+        return [1, 0];
+    } else if (Group.attr?.direction === 'row_reverse') {
+        return [2, 1];
+    } else if (Group.attr?.direction === 'column_reverse') {
+        return [3, 0];
+    } else {
+        // default or 'another'
+        // for typescript compiler.
+        const first = parent.compassItems[0];
+        if (first === 0 || first === 2) {
+            const second = parent.compassItems[1];
+            return [second, first];
+        } else if (first === 1 || first === 3) {
+            const second = parent.compassItems[1];
+            return [second, first];
+        } else {
+            const _: never = first;
+            return _;
+        }
+    }
+    /* // TODO switchable?
     if (Group.attr?.direction === 'cross') {
         // for typescript compiler.
         const first = parent.compass[0];
@@ -436,11 +464,12 @@ const getGroupCompass = (Group: GroupL1, parent: ContainerL2): Compass => {
         // default or 'same'
         return parent.compass;
     }
+    */
 }
 
 const getUnitCompass = (Unit: UnitL1, parent: ContainerL2): Compass => {
     if (Unit.attr?.direction === 'main') {
-        return parent.compass;
+        return parent.compassItems;
     } else if (Unit.attr?.direction === 'row') {
         return [0, 1];
     } else if (Unit.attr?.direction === 'column') {
@@ -452,22 +481,18 @@ const getUnitCompass = (Unit: UnitL1, parent: ContainerL2): Compass => {
     } else {
         // default or 'another'
         // for typescript compiler.
-        const first = parent.compass[0];
+        const first = parent.compassItems[0];
         if (first === 0 || first === 2) {
-            const second = parent.compass[1];
+            const second = parent.compassItems[1];
             return [second, first];
         } else if (first === 1 || first === 3) {
-            const second = parent.compass[1];
+            const second = parent.compassItems[1];
             return [second, first];
         } else {
             const _: never = first;
             return _;
         }
     }
-}
-
-const getCellCompass = (_cell: CellL1, parent: ContainerL2): Compass => {
-    return parent.compass;
 }
 
 const getLinkDirect = (direction: [Direction, Direction]): [Direct, Direct] => {
@@ -490,41 +515,34 @@ const getDirect = (direction: Direction): Direct => {
 }
 
 const getEdge = (compass: Compass, siblingIndex: number, parentCompass: Compass, parentChildNum: number, parentEdge: EdgeNumber): EdgeNumber => {
-    const mappingCompassFull = getMappingCompassFull(compass, parentCompass);
-    let tmpEdge: EdgeNumber;
+    const mappingCompassFull = getMappingCompassFull(parentCompass, compass);
     if (parentChildNum === 1) {
-        tmpEdge = [
-            parentEdge[0] + 1,
-            parentEdge[1] + 1,
-            parentEdge[2] + 1,
-            parentEdge[3] + 1,
+        return [
+            parentEdge[mappingCompassFull[0]] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
+            parentEdge[mappingCompassFull[2]] + 1,
+            parentEdge[mappingCompassFull[3]] + 1,
         ];
     } else if (siblingIndex === 0) {  //first
-        tmpEdge = [
+        return [
             1,
-            parentEdge[1] + 1,
-            parentEdge[2] + 1,
-            parentEdge[3] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
+            parentEdge[mappingCompassFull[2]] + 1,
+            parentEdge[mappingCompassFull[3]] + 1,
         ];
     } else if (siblingIndex === parentChildNum - 1) {
-        tmpEdge = [
-            parentEdge[0] + 1,
-            parentEdge[1] + 1,
+        return [
+            parentEdge[mappingCompassFull[0]] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
             1,
-            parentEdge[3] + 1,
+            parentEdge[mappingCompassFull[3]] + 1,
         ];
     } else {
-        tmpEdge = [
+        return [
             1,
-            parentEdge[1] + 1,
+            parentEdge[mappingCompassFull[1]] + 1,
             1,
-            parentEdge[3] + 1,
+            parentEdge[mappingCompassFull[3]] + 1,
         ];
     }
-    return [
-        tmpEdge[mappingCompassFull[0]],
-        tmpEdge[mappingCompassFull[1]],
-        tmpEdge[mappingCompassFull[2]],
-        tmpEdge[mappingCompassFull[3]],
-    ]
 }

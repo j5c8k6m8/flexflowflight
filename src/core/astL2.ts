@@ -19,7 +19,8 @@ export type Box = Group | Cell;
 export type Group = {
     nodeId: NodeId;
     type: "Group";
-    compass: Compass;
+    compassItems: Compass;
+    compassSelf: Compass;
     parents: NodeId[];
     children: NodeId[];
     siblings: NodeId[];
@@ -31,7 +32,8 @@ export type Group = {
 export type Unit = {
     nodeId: NodeId;
     type: "Unit";
-    compass: Compass;
+    compassItems: Compass;
+    compassSelf: Compass;
     parents: NodeId[];
     children: NodeId[];
     siblings: NodeId[];
@@ -42,10 +44,10 @@ export type Unit = {
 export type Cell = {
     nodeId: NodeId;
     type: "Cell";
-    compass: Compass;
+    compassSelf: Compass;
     parents: NodeId[];
     siblings: NodeId[];
-    links: [LinkId[],LinkId[]];
+    links: [LinkId[], LinkId[]];
     // bnParents is boundary number of parents.
     bnParents: EdgeNumber;
 };
