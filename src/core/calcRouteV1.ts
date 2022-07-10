@@ -41,9 +41,9 @@ export const calcRoute = async (nodes: Node[], links: Link[]): Promise<LinkRoute
         }
         const fromRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null] = [null, null, null, null];
         const toRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null] = [null, null, null, null];
-        getRoutesWithoutLane(fromNode, link.edge[0], fromCommonParentIndex, [], fromRoutes, [0, 1, 2, 3], nodes, 1);
-        getRoutesWithoutLane(toNode, link.edge[1], toCommonParentIndex, [], toRoutes, [2, 3, 0, 1], nodes, 1);
-        const route = getBestRouteWithoutLane(fromRoutes, toRoutes, fromNodeId, toNodeId);
+        getRoutes(fromNode, link.edge[0], fromCommonParentIndex, [], fromRoutes, [0, 1, 2, 3], nodes, 1);
+        getRoutes(toNode, link.edge[1], toCommonParentIndex, [], toRoutes, [2, 3, 0, 1], nodes, 1);
+        const route = getBestRoute(fromRoutes, toRoutes, fromNodeId, toNodeId);
 
         linkRoutes.push({
             linkId: link.linkId,
@@ -53,10 +53,10 @@ export const calcRoute = async (nodes: Node[], links: Link[]): Promise<LinkRoute
     return linkRoutes;
 }
 
-const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, currentRoute: Array<Road>, routes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], directPriority: [Direct, Direct, Direct, Direct], nodeMap: Node[], callNum: number): void => {
+const getRoutes = (node: Node, direct: Direct, parentIndex: number, currentRoute: Array<Road>, routes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], directPriority: [Direct, Direct, Direct, Direct], nodeMap: Node[], callNum: number): void => {
     // FUNCTION ERROR ID = '02'
     // Avoid infinite loops.
-    if (callNum > 100) {
+    if (callNum > 1000) {
         throw new Error(`[E030201] nest too deep.`);
     }
     callNum++;
@@ -142,13 +142,13 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
         directPriority.forEach(d => {
             if (!isSameAxisDirect(d, railDirect)) {
                 // recursive call
-                getRoutesWithoutLane(targetNode, nextMappingCompassFull[d], parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
+                getRoutes(targetNode, nextMappingCompassFull[d], parentIndex - targetIndex - 1, currentRoute, routes, directPriority, nodeMap, callNum + 1);
             }
         });
     }
 }
 
-const getBestRouteWithoutLane = (fromRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], toRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], fromLinkNodeId: NodeId, toLinkNodeId: NodeId): Array<Road> => {
+const getBestRoute = (fromRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], toRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], fromLinkNodeId: NodeId, toLinkNodeId: NodeId): Array<Road> => {
     // FUNCTION ERROR ID = '03'
     const allDirect: Direct[] = [0, 1, 2, 3];
     let ret: Array<Road> | null = null;
