@@ -117,7 +117,8 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
 
     astL5.linkItems.forEach(linkItem => {
         const xys: XY[] = [];
-        let currentXY = getGateXY(linkItem.box[0], linkItem.edge[0], linkItem.gate[0], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
+        const gateLoca = astL5.gateLocas[linkItem.linkId];
+        let currentXY = getGateXY(linkItem.box[0], linkItem.edge[0], gateLoca.coords[0], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
         xys.push(currentXY);
         linkItem.route.forEach((itemId, i) => {
             const item = astL5.items[itemId];
@@ -144,7 +145,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
             }
             xys.push(currentXY);
             if (i === linkItem.route.length - 1) {
-                const lastXY = getGateXY(linkItem.box[1], linkItem.edge[1], linkItem.gate[1], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
+                const lastXY = getGateXY(linkItem.box[1], linkItem.edge[1], gateLoca.coords[1], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
                 if (compassAxis[0] !== item.axis) {
                     currentXY = [
                         lastXY[0],
@@ -171,7 +172,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
         links: astL5.links,
         linkAttrs: astL5.linkAttrs,
         docAttr: astL5.docAttr,
-        laneAttr: astL5.laneAttr,
+        locaAttr: astL5.locaAttr,
         n2i: astL5.n2i,
         i2n: astL5.i2n,
         items: astL5.items,
@@ -188,7 +189,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
     return astL6;
 }
 
-const getGateXY = (itemId: ItemId, direct: Direct, gate: GateNo, items: Item[], itemLocas: ItemLoca[], nodeAttrs: NodeAttr[], i2n: Array<ItemId | null>, docAttr: DocAttr): XY => {
+const getGateXY = (itemId: ItemId, direct: Direct, gateCoord: number, items: Item[], itemLocas: ItemLoca[], nodeAttrs: NodeAttr[], i2n: Array<ItemId | null>, docAttr: DocAttr): XY => {
     // FUNCTION ERROR ID = '02'
     const item = items[itemId];
     const parentItem = items[item.parents[item.parents.length - 1]];
@@ -210,27 +211,24 @@ const getGateXY = (itemId: ItemId, direct: Direct, gate: GateNo, items: Item[], 
     if (!(nodeAttr.type === 'Group' || nodeAttr.type === 'Cell')) {
         throw new Error(`[E060204] invalid unreachable code.`);
     }
-    const gateNum = item.bnGates[direct];
-    const allGateLen = gateNum === 0 ? 0 : (gateNum - 1) * docAttr.gate_gap[direct];
-    const targetGateLen = (gate === 0 ? 0 : (gate - 1) * docAttr.gate_gap[direct]);
     if (direct === 0) {
         return [
             itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[direct],
-            itemLoca.xy[1] + Math.floor((itemLoca.size[1] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[1] + gateCoord,
         ]
     } else if (direct === 1) {
         return [
-            itemLoca.xy[0] + Math.floor((itemLoca.size[0] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[0] + gateCoord,
             itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[direct],
         ]
     } else if (direct === 2) {
         return [
             itemLoca.xy[0] + nodeAttr.margin[direct],
-            itemLoca.xy[1] + Math.floor((itemLoca.size[1] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[1] + gateCoord,
         ]
     } else if (direct === 3) {
         return [
-            itemLoca.xy[0] + Math.floor((itemLoca.size[0] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[0] + gateCoord,
             itemLoca.xy[1] + nodeAttr.margin[direct],
         ]
     } else {

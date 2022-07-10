@@ -1,11 +1,11 @@
-import { AstL2, Node, Link, LaneAttr } from "./astL2.ts"
+import { AstL2, Node, Link } from "./astL2.ts"
 import { AstL3, LinkRoute } from "./astL3.ts"
 import { calcRoute as calcRouteV1} from "./calcRouteV1.ts"
 
 type Options = {
     pre?: (astL2: AstL2) => Promise<AstL2>,
     post?: (astL3: AstL3) => Promise<AstL3>,
-    calc?: (nodes: Node[], links: Link[], laneAttr: LaneAttr, astL2: AstL2) => Promise<LinkRoute[]>,
+    calc?: (nodes: Node[], links: Link[], astL2: AstL2) => Promise<LinkRoute[]>,
 }
 
 // FILE ERROR ID = '03'
@@ -16,13 +16,12 @@ export const parse = async (astL2: AstL2, { pre, post, calc, }: Options = {}): P
     }
     const nodes = astL2.nodes;
     const links = astL2.links;
-    const laneAttr = astL2.laneAttr;
 
     let linkRoutes:LinkRoute[];
     if (calc) {
-        linkRoutes = await calc(nodes, links, laneAttr, astL2);
+        linkRoutes = await calc(nodes, links, astL2);
     } else {
-        linkRoutes = await calcRouteV1(nodes, links, laneAttr);
+        linkRoutes = await calcRouteV1(nodes, links);
     }
     // TODO calc result Consistency check
 
@@ -32,7 +31,7 @@ export const parse = async (astL2: AstL2, { pre, post, calc, }: Options = {}): P
         links: astL2.links,
         linkAttrs: astL2.linkAttrs,
         docAttr: astL2.docAttr,
-        laneAttr: astL2.laneAttr,
+        locaAttr: astL2.locaAttr,
         linkRoutes: linkRoutes,
     }
     if (post) {

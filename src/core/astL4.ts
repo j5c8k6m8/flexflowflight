@@ -1,4 +1,4 @@
-import { NodeId, LinkId, ItemId, GateNo, Compass, Direct, CrossAvenue, Size, EdgeNumber } from "./astC0.ts"
+import { NodeId, LinkId, ItemId, LaneNo, GateNo, Compass, Direct, CrossAvenue, Size, EdgeNumber } from "./astC0.ts"
 import { Align } from "./astC1.ts"
 import { AstL2 } from "./astL2.ts"
 
@@ -18,9 +18,7 @@ export type GroupItem = {
     compassSelf: Compass;
     parents: ItemId[];
     siblings: ItemId[];
-    links: [LinkId[], LinkId[]];
-    // bnGates is 'b'oundary 'n'umber of gates.
-    bnGates: EdgeNumber;
+    links: [[LinkId[], LinkId[], LinkId[], LinkId[]], [LinkId[], LinkId[], LinkId[], LinkId[]]];
     mainItems: ItemId[];
     crossItems: [ItemId[], ItemId[]];
     space: EdgeNumber;
@@ -46,9 +44,7 @@ export type CellItem = {
     compassSelf: Compass;
     parents: ItemId[];
     siblings: ItemId[];
-    links: [LinkId[], LinkId[]];
-    // bnGates is 'b'oundary 'n'umber of gates.
-    bnGates: EdgeNumber;
+    links: [[LinkId[], LinkId[], LinkId[], LinkId[]], [LinkId[], LinkId[], LinkId[], LinkId[]]];
     size: Size;
     align: Align;
 };
@@ -61,10 +57,10 @@ export type RoadMain = {
     axis: 0;
     // axisIndex is between 0 to children.length.
     avenue: number;
-    lane: GateNo;
+    lane: LaneNo;
     parents: ItemId[];
     siblings: ItemId[];
-    links: LinkId[];
+    link: LinkId | null;
     width: number;
 };
 
@@ -73,9 +69,9 @@ export type RoadCross = {
     type: "Road";
     axis: 1;
     avenue: CrossAvenue;
-    lane: GateNo;
+    lane: LaneNo;
     parents: ItemId[];
-    links: LinkId[];
+    link: LinkId | null;
     width: number;
 };
 
@@ -83,6 +79,5 @@ export type LinkItem = {
     linkId: LinkId;
     box: [ItemId, ItemId];
     edge: [Direct, Direct];
-    gate: [GateNo, GateNo];
     route: ItemId[];
 };

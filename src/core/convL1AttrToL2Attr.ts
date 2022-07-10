@@ -2,7 +2,7 @@ import { NodeId, EdgeNumber } from "./astC0.ts"
 import { Name } from "./astC1.ts"
 import { AstL1, Group as GroupL1, Unit as UnitL1, Container as ContainerL1, Cell as CellL1, Link as LinkL1 } from "./astL1.ts"
 import { Link as LinkL2 } from "./astL2.ts"
-import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LaneAttr as LaneAttrL2 } from "./astL2.ts"
+import { DocAttr, GroupAttr as GroupAttrL2, UnitAttr as UnitAttrL2, CellAttr as CellAttrL2, LinkAttr as LinkAttrL2, LocaAttr as LaneAttrL2 } from "./astL2.ts"
 
 export type TextSizeFunc = (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>;
 
@@ -15,7 +15,6 @@ export const parseDocAttr = (l1: AstL1): DocAttr => {
     let group_padding: EdgeNumber = [2, 2, 2, 2];
     let group_border: EdgeNumber = [2, 2, 2, 2];
     let group_margin: EdgeNumber = [4, 4, 4, 4];
-    let gate_gap: EdgeNumber = [8, 8, 8, 8];
     let char_width = 14;
     let char_height = 8;
     let link_border = 2;
@@ -53,9 +52,6 @@ export const parseDocAttr = (l1: AstL1): DocAttr => {
         if ('link_border' in l1.attr && l1.attr.link_border) {
             link_border = l1.attr.link_border;
         }
-        if ('gate_gap' in l1.attr && l1.attr.gate_gap) {
-            gate_gap = l1.attr.gate_gap;
-        }
     }
     return {
         css: css,
@@ -69,7 +65,6 @@ export const parseDocAttr = (l1: AstL1): DocAttr => {
         char_width: char_width,
         char_height: char_height,
         link_border: link_border,
-        gate_gap: gate_gap,
     };
 }
 
@@ -274,6 +269,7 @@ export const parseLinkAttr = (l1: LinkL1, l2: LinkL2): LinkAttrL2 => {
 export const parseLaneAttr = (l1: AstL1): LaneAttrL2 => {
     let laneWidth: [number, number] = [12, 12];
     let laneMin = 0;
+    let gate_gap: EdgeNumber = [8, 8, 8, 8];
     if ('attr' in l1 && l1.attr) {
         if ('lane_width' in l1.attr && l1.attr.lane_width) {
             laneWidth = l1.attr.lane_width;
@@ -281,9 +277,13 @@ export const parseLaneAttr = (l1: AstL1): LaneAttrL2 => {
         if ('lane_min' in l1.attr && l1.attr.lane_min) {
             laneMin = l1.attr.lane_min;
         }
+        if ('gate_gap' in l1.attr && l1.attr.gate_gap) {
+            gate_gap = l1.attr.gate_gap;
+        }
     }
     return {
         laneWidth: laneWidth,
         laneMin: laneMin,
+        gate_gap: gate_gap,
     };
 }

@@ -1,10 +1,11 @@
-import { Size, ItemId, getCompassAxis } from "./astC0.ts"
-import { Item } from "./astL4.ts"
-import { ItemLoca } from "./astL5.ts"
+import { ItemId, Direct, Size, getCompassAxis, getCompassFull, getAnotherAxisByDirect } from "./astC0.ts"
+import { LocaAttr } from "./astL2.ts"
+import { Item, LinkItem } from "./astL4.ts"
+import { ItemLoca, GateLoca } from "./astL5.ts"
 
 // FILE ERROR ID = '31'
 // deno-lint-ignore require-await
-export const calcLoca = async (items: Item[]): Promise<ItemLoca[]> => {
+export const calcLoca = async (items: Item[], linkItems: LinkItem[], locaAttr: LocaAttr): Promise<[ItemLoca[], GateLoca[]]> => {
     // FUNCTION ERROR ID = '01'
     const sizes: Size[] = [];
     getCalcSizeRecursive(0, items, sizes);
@@ -16,7 +17,8 @@ export const calcLoca = async (items: Item[]): Promise<ItemLoca[]> => {
         coord: [0, 0],
     }
     getCalcItemCoordRecursive(0, items, sizes, itemLocas);
-    return itemLocas;
+    const gateLocas = getCalcGateLoca(linkItems, items, itemLocas, locaAttr);
+    return [itemLocas, gateLocas];
 }
 
 const getCalcSizeRecursive = (itemId: ItemId, items: Item[], sizes: Size[]): Size => {
@@ -201,4 +203,77 @@ const getCalcItemCoordRecursive = (itemId: ItemId, items: Item[], sizes: Size[],
         const _: never = itemType;
         return _;
     }
+}
+
+const getCalcGateLoca = (linkItems: LinkItem[], items: Item[], itemLocas: ItemLoca[], locaAttr: LocaAttr): GateLoca[] => {
+    // FUNCTION ERROR ID = '04'
+    const itemEdgeInfoMap: Map<ItemId, [itemEdgeInfo, itemEdgeInfo, itemEdgeInfo, itemEdgeInfo]> = new Map();
+
+    const gateLocas: GateLoca[] = [];
+    linkItems.forEach(linkItem => {
+        const linkId = linkItem.linkId;
+        const frItemId = linkItem.box[0];
+        const toItemId = linkItem.box[1];
+
+        let frItemEdgeInfo = itemEdgeInfoMap.get(frItemId);
+        if (!frItemEdgeInfo) {
+            frItemEdgeInfo = getItemEdgeInfo(frItemId, items, itemLocas, locaAttr);
+            itemEdgeInfoMap.set(frItemId, frItemEdgeInfo);
+        }
+
+        let toItemEdgeInfo = itemEdgeInfoMap.get(toItemId);
+        if (!toItemEdgeInfo) {
+            toItemEdgeInfo = getItemEdgeInfo(toItemId, items, itemLocas, locaAttr);
+            itemEdgeInfoMap.set(toItemId, toItemEdgeInfo);
+        }
+        const frItemInfo = frItemEdgeInfo[linkItem.edge[0]];
+        const toItemInfo = toItemEdgeInfo[linkItem.edge[1]];
+        const frCurrent = frItemInfo.currentGate;
+        const toCurrent = toItemInfo.currentGate;
+        frItemInfo.currentGate = frCurrent + 1;
+        toItemInfo.currentGate = toCurrent + 1;
+
+        gateLocas[linkId] = {
+            linkId: linkId,
+            coords: [
+                frItemInfo.startCood + (locaAttr.gate_gap[frItemInfo.absoluteAxis] * frCurrent),
+                toItemInfo.startCood + (locaAttr.gate_gap[toItemInfo.absoluteAxis] * toCurrent),
+            ]
+        }
+    });
+    return gateLocas;
+}
+
+type itemEdgeInfo = {
+    absoluteAxis: Direct;
+    startCood: number;
+    currentGate: number;
+};
+
+const getItemEdgeInfo = (itemId: ItemId, items: Item[], itemLocas: ItemLoca[], locaAttr: LocaAttr): [itemEdgeInfo, itemEdgeInfo, itemEdgeInfo, itemEdgeInfo] => {
+    // FUNCTION ERROR ID = '05'
+    const item = items[itemId];
+    const itemLoca = itemLocas[itemId];
+    if (!(item.type === 'Group' || item.type === 'Cell')) {
+        throw new Error(`[E310501] invalid unreachable code.`);
+    }
+    const compass = getCompassFull(item.compassSelf);
+    const getItemEdgeInfo = (d: Direct) => {
+        const direct = compass[d];
+        const absoluteAxis = getAnotherAxisByDirect(direct);
+        const num = item.links[0][d].length + item.links[1][d].length;
+        const allGateLen = num === 0 ? 0 : (num - 1) * locaAttr.gate_gap[direct];
+        const edgeLength = itemLoca.size[absoluteAxis];
+        return {
+            absoluteAxis: absoluteAxis,
+            startCood: Math.floor((edgeLength - allGateLen) / 2),
+            currentGate: 0,
+        }
+    };
+    return [
+        getItemEdgeInfo(0),
+        getItemEdgeInfo(1),
+        getItemEdgeInfo(2),
+        getItemEdgeInfo(3),
+    ];
 }

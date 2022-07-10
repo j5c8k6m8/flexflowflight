@@ -1170,12 +1170,6 @@ const parseDocAttr = (l1)=>{
         4,
         4
     ];
-    let gate_gap = [
-        8,
-        8,
-        8,
-        8
-    ];
     let char_width = 14;
     let char_height = 8;
     let link_border = 2;
@@ -1213,9 +1207,6 @@ const parseDocAttr = (l1)=>{
         if ('link_border' in l1.attr && l1.attr.link_border) {
             link_border = l1.attr.link_border;
         }
-        if ('gate_gap' in l1.attr && l1.attr.gate_gap) {
-            gate_gap = l1.attr.gate_gap;
-        }
     }
     return {
         css: css,
@@ -1228,8 +1219,7 @@ const parseDocAttr = (l1)=>{
         group_margin: group_margin,
         char_width: char_width,
         char_height: char_height,
-        link_border: link_border,
-        gate_gap: gate_gap
+        link_border: link_border
     };
 };
 const parseRootUnitAttr = (l1, nodeId)=>{
@@ -1444,6 +1434,12 @@ const parseLaneAttr = (l1)=>{
         12
     ];
     let laneMin = 0;
+    let gate_gap = [
+        8,
+        8,
+        8,
+        8
+    ];
     if ('attr' in l1 && l1.attr) {
         if ('lane_width' in l1.attr && l1.attr.lane_width) {
             laneWidth = l1.attr.lane_width;
@@ -1451,10 +1447,14 @@ const parseLaneAttr = (l1)=>{
         if ('lane_min' in l1.attr && l1.attr.lane_min) {
             laneMin = l1.attr.lane_min;
         }
+        if ('gate_gap' in l1.attr && l1.attr.gate_gap) {
+            gate_gap = l1.attr.gate_gap;
+        }
     }
     return {
         laneWidth: laneWidth,
-        laneMin: laneMin
+        laneMin: laneMin,
+        gate_gap: gate_gap
     };
 };
 const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
@@ -1466,7 +1466,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
     const links = [];
     const linkAttrs = [];
     const docAttr = parseDocAttr(astL1);
-    const laneAttr = parseLaneAttr(astL1);
+    const locaAttr = parseLaneAttr(astL1);
     const idGen = {
         nodeId: 0,
         linkId: 0
@@ -1575,13 +1575,13 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
                 if (fnode.type === 'Unit') {
                     throw new Error(`[E_] .`);
                 } else {
-                    fnode.links[0].push(link2.linkId);
+                    fnode.links[0][link2.edge[0]].push(link2.linkId);
                 }
                 const tnode = nodes[t.nodeId];
                 if (tnode.type === 'Unit') {
                     throw new Error(`[E_] .`);
                 } else {
-                    tnode.links[1].push(link2.linkId);
+                    tnode.links[1][link2.edge[1]].push(link2.linkId);
                 }
             });
         });
@@ -1592,7 +1592,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
         links: links,
         linkAttrs: linkAttrs,
         docAttr: docAttr,
-        laneAttr: laneAttr
+        locaAttr: locaAttr
     };
     if (post) {
         astL2 = await post(astL2);
@@ -1633,8 +1633,18 @@ const parseGroup1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId, 
         children: [],
         siblings: parent.children,
         links: [
-            [],
-            []
+            [
+                [],
+                [],
+                [],
+                []
+            ],
+            [
+                [],
+                [],
+                [],
+                []
+            ]
         ],
         bnParents: edge
     };
@@ -1662,8 +1672,18 @@ const parseCell1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId)=>
         parents: parents,
         siblings: parent.children,
         links: [
-            [],
-            []
+            [
+                [],
+                [],
+                [],
+                []
+            ],
+            [
+                [],
+                [],
+                [],
+                []
+            ]
         ],
         bnParents: edge
     };
@@ -1986,11 +2006,8 @@ const getEdge = (compass, siblingIndex, parentCompass, parentChildNum, parentEdg
         ];
     }
 };
-const calcRoute = async (nodes, links, _laneAttr)=>{
+const calcRoute = async (nodes, links)=>{
     const linkRoutes = [];
-    const nodeEntryLaneMap = new Map();
-    const nodeMainLaneMap = new Map();
-    const nodeCrossLaneMap = new Map();
     links.forEach((link)=>{
         const fromNodeId = link.box[0];
         const toNodeId = link.box[1];
@@ -2050,85 +2067,9 @@ const calcRoute = async (nodes, links, _laneAttr)=>{
             0,
             1
         ], nodes, 1);
-        const routeWithoutLane = getBestRouteWithoutLane(fromRoutes, toRoutes, fromNodeId, toNodeId);
-        const route = routeWithoutLane.map((railWithoutLane)=>{
-            const axis = railWithoutLane.axis;
-            if (axis === 0) {
-                let indexMap = nodeMainLaneMap.get(railWithoutLane.containerId);
-                if (!indexMap) {
-                    indexMap = new Map();
-                    nodeMainLaneMap.set(railWithoutLane.containerId, indexMap);
-                }
-                const lane = indexMap.get(railWithoutLane.axisIndex);
-                if (lane != null) {
-                    indexMap.set(railWithoutLane.axisIndex, lane + 1);
-                    return {
-                        containerId: railWithoutLane.containerId,
-                        axis: railWithoutLane.axis,
-                        avenue: railWithoutLane.axisIndex,
-                        lane: lane
-                    };
-                } else {
-                    indexMap.set(railWithoutLane.axisIndex, 1);
-                    return {
-                        containerId: railWithoutLane.containerId,
-                        axis: railWithoutLane.axis,
-                        avenue: railWithoutLane.axisIndex,
-                        lane: 0
-                    };
-                }
-            } else if (axis === 1) {
-                let lanes = nodeCrossLaneMap.get(railWithoutLane.containerId);
-                if (!lanes) {
-                    lanes = [
-                        1,
-                        1
-                    ];
-                    nodeCrossLaneMap.set(railWithoutLane.containerId, lanes);
-                }
-                const lane = lanes[railWithoutLane.axisIndex];
-                lanes[railWithoutLane.axisIndex] = lane + 1;
-                return {
-                    containerId: railWithoutLane.containerId,
-                    axis: railWithoutLane.axis,
-                    avenue: railWithoutLane.axisIndex,
-                    lane: lane
-                };
-            } else {
-                const _ = axis;
-                return _;
-            }
-        });
-        let frNodeEntryLane = nodeEntryLaneMap.get(link.box[0]);
-        if (!frNodeEntryLane) {
-            frNodeEntryLane = [
-                1,
-                1,
-                1,
-                1
-            ];
-            nodeEntryLaneMap.set(link.box[0], frNodeEntryLane);
-        }
-        const frLane = frNodeEntryLane[link.edge[0]];
-        frNodeEntryLane[link.edge[0]] += 1;
-        let toNodeEntryLane = nodeEntryLaneMap.get(link.box[1]);
-        if (!toNodeEntryLane) {
-            toNodeEntryLane = [
-                1,
-                1,
-                1,
-                1
-            ];
-            nodeEntryLaneMap.set(link.box[1], toNodeEntryLane);
-        }
-        const toLane = toNodeEntryLane[link.edge[1]];
-        toNodeEntryLane[link.edge[1]] += 1;
+        const route = getBestRouteWithoutLane(fromRoutes, toRoutes, fromNodeId, toNodeId);
         linkRoutes.push({
             linkId: link.linkId,
-            gate: [
-                frLane,
-                toLane
-            ],
             route: route
         });
     });
@@ -2176,36 +2117,36 @@ const getRoutesWithoutLane = (node, direct, parentIndex, currentRoute, routes, d
     } else {
         siblingIndex = node.siblings.indexOf(node.nodeId);
     }
-    let railWithoutLane;
+    let Road;
     if (railDirect === 0) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 0,
-            axisIndex: siblingIndex + 1
+            avenue: siblingIndex + 1
         };
     } else if (railDirect === 1) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 1,
-            axisIndex: 1
+            avenue: 1
         };
     } else if (railDirect === 2) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 0,
-            axisIndex: siblingIndex
+            avenue: siblingIndex
         };
     } else if (railDirect === 3) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 1,
-            axisIndex: 0
+            avenue: 0
         };
     } else {
         const _ = railDirect;
         return _;
     }
-    currentRoute = currentRoute.concat(railWithoutLane);
+    currentRoute = currentRoute.concat(Road);
     if (node.bnParents[direct] - 1 >= parentIndex) {
         const lastRoutes = routes[railDirect];
         if (lastRoutes == null || lastRoutes.length > currentRoute.length) {
@@ -2251,7 +2192,7 @@ const getBestRouteWithoutLane = (fromRoutes, toRoutes, fromLinkNodeId, toLinkNod
             const fromLastRoute = fromRoute[fromRoute.length - 1];
             const toLastRoute = toRoute[toRoute.length - 1];
             if (i === j) {
-                if (fromLastRoute.axisIndex === toLastRoute.axisIndex) {
+                if (fromLastRoute.avenue === toLastRoute.avenue) {
                     const tmpScore = (fromRoute.length + toRoute.length - 1) * 10 + 4;
                     if (tmpScore < retScore) {
                         retScore = tmpScore;
@@ -2266,7 +2207,7 @@ const getBestRouteWithoutLane = (fromRoutes, toRoutes, fromLinkNodeId, toLinkNod
                         ret = fromRoute.concat({
                             containerId: fromLastRoute.containerId,
                             axis: getAnotherAxisByDirect(i),
-                            axisIndex: 0
+                            avenue: 0
                         }).concat([
                             ...toRoute
                         ].reverse());
@@ -2274,7 +2215,7 @@ const getBestRouteWithoutLane = (fromRoutes, toRoutes, fromLinkNodeId, toLinkNod
                 }
             } else {
                 if (i === getReverse(j)) {
-                    if (fromLastRoute.axisIndex === toLastRoute.axisIndex) {
+                    if (fromLastRoute.avenue === toLastRoute.avenue) {
                         const tmpScore = (fromRoute.length + toRoute.length - 1) * 10;
                         if (tmpScore < retScore) {
                             retScore = tmpScore;
@@ -2292,7 +2233,7 @@ const getBestRouteWithoutLane = (fromRoutes, toRoutes, fromLinkNodeId, toLinkNod
                             ret = fromRoute.concat({
                                 containerId: fromLastRoute.containerId,
                                 axis: getAnotherAxisByDirect(i),
-                                axisIndex: 0
+                                avenue: 0
                             }).concat([
                                 ...toRoute
                             ].reverse());
@@ -2321,12 +2262,11 @@ const parse2 = async (astL2, { pre , post , calc  } = {})=>{
     }
     const nodes = astL2.nodes;
     const links = astL2.links;
-    const laneAttr = astL2.laneAttr;
     let linkRoutes;
     if (calc) {
-        linkRoutes = await calc(nodes, links, laneAttr, astL2);
+        linkRoutes = await calc(nodes, links, astL2);
     } else {
-        linkRoutes = await calcRoute(nodes, links, laneAttr);
+        linkRoutes = await calcRoute(nodes, links);
     }
     let astL3 = {
         nodes: astL2.nodes,
@@ -2334,7 +2274,7 @@ const parse2 = async (astL2, { pre , post , calc  } = {})=>{
         links: astL2.links,
         linkAttrs: astL2.linkAttrs,
         docAttr: astL2.docAttr,
-        laneAttr: astL2.laneAttr,
+        locaAttr: astL2.locaAttr,
         linkRoutes: linkRoutes
     };
     if (post) {
@@ -2361,80 +2301,93 @@ const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=
         n2i: n2i,
         i2n: i2n
     };
-    const nodeMainMaxLaneMap = new Map();
-    const nodeCrossMaxLaneMap = new Map();
+    const nodeMainRoadsMap = new Map();
+    const nodeCrossRoadsMap = new Map();
     linkRoutes.forEach((linkRoute)=>{
         linkRoute.route.forEach((road)=>{
             const axis = road.axis;
             if (axis === 0) {
-                let nodeMainMaxLane = nodeMainMaxLaneMap.get(road.containerId);
-                if (!nodeMainMaxLane) {
-                    nodeMainMaxLane = new Map();
-                    nodeMainMaxLaneMap.set(road.containerId, nodeMainMaxLane);
+                let nodeMainRoads = nodeMainRoadsMap.get(road.containerId);
+                if (!nodeMainRoads) {
+                    nodeMainRoads = new Map();
+                    nodeMainRoadsMap.set(road.containerId, nodeMainRoads);
                 }
-                let branchMap = nodeMainMaxLane.get(road.avenue);
-                if (!branchMap) {
-                    branchMap = new Map();
-                    nodeMainMaxLane.set(road.avenue, branchMap);
-                }
-                let links = branchMap.get(road.lane);
-                if (!links) {
+                let links = nodeMainRoads.get(road.avenue);
+                if (links == null) {
                     links = [];
-                    branchMap.set(road.lane, links);
+                    nodeMainRoads.set(road.avenue, links);
                 }
                 links.push(linkRoute.linkId);
             } else if (axis === 1) {
-                let nodeCrossMaxLane = nodeCrossMaxLaneMap.get(road.containerId);
-                if (!nodeCrossMaxLane) {
-                    nodeCrossMaxLane = [
-                        new Map(),
-                        new Map()
+                let nodeCrossRoads = nodeCrossRoadsMap.get(road.containerId);
+                if (!nodeCrossRoads) {
+                    nodeCrossRoads = [
+                        [],
+                        []
                     ];
-                    nodeCrossMaxLaneMap.set(road.containerId, nodeCrossMaxLane);
+                    nodeCrossRoadsMap.set(road.containerId, nodeCrossRoads);
                 }
-                const branchMap = nodeCrossMaxLane[road.avenue];
-                let links = branchMap.get(road.lane);
-                if (!links) {
-                    links = [];
-                    branchMap.set(road.lane, links);
-                }
-                links.push(linkRoute.linkId);
+                nodeCrossRoads[road.avenue].push(linkRoute.linkId);
             } else {
                 const _ = axis;
                 return _;
             }
         });
     });
-    setNodeMap(0, items, nodes, nodeAttrs, links1, linkRoutes, astL3.laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, [], mainLaneMinNum, crossLaneMinNum);
+    setNodeMap(0, items, nodes, nodeAttrs, links1, linkRoutes, astL3.locaAttr, idGen, n2i, nodeMainRoadsMap, nodeCrossRoadsMap, [], mainLaneMinNum, crossLaneMinNum);
+    const currentMainLanesMap = new Map();
+    const currentCrossLanesMap = new Map();
     links1.forEach((link)=>{
         const linkRoute = linkRoutes[link.linkId];
         const route = linkRoute.route.map((r)=>{
-            const item = items[n2i[r.containerId]];
+            const itemId = n2i[r.containerId];
+            const item = items[itemId];
             const type = item.type;
             const axis = r.axis;
             if (type !== "Group" && type !== "Unit") {
                 throw new Error(`[E040101] invalid.`);
             }
             if (axis === 0) {
+                const avenue = r.avenue;
+                let currentMainLanes = currentMainLanesMap.get(itemId);
+                if (!currentMainLanes) {
+                    currentMainLanes = new Map();
+                    currentMainLanesMap.set(itemId, currentMainLanes);
+                }
+                let currentMainLane = currentMainLanes.get(avenue);
+                if (currentMainLane == null) {
+                    currentMainLane = 0;
+                }
+                currentMainLanes.set(avenue, currentMainLane + 1);
                 for(let i = 0; i < item.mainItems.length; i++){
                     const tmp = items[item.mainItems[i]];
-                    if (tmp.type === "Road" && tmp.avenue === r.avenue && tmp.lane === r.lane) {
+                    if (tmp.type === "Road" && tmp.avenue === avenue && tmp.lane === currentMainLane) {
                         return tmp.itemId;
                     }
                 }
             } else if (axis === 1) {
                 const avenue = r.avenue;
+                let currentCrossLanes = currentCrossLanesMap.get(itemId);
+                if (!currentCrossLanes) {
+                    currentCrossLanes = [
+                        0,
+                        0
+                    ];
+                    currentCrossLanesMap.set(itemId, currentCrossLanes);
+                }
+                const currentCrossLane = currentCrossLanes[avenue];
+                currentCrossLanes[avenue] = currentCrossLane + 1;
                 if (avenue === 0) {
                     for(let i = 0; i < item.crossItems[0].length; i++){
                         const tmp = items[item.crossItems[0][i]];
-                        if (tmp.type === "Road" && tmp.lane === r.lane) {
+                        if (tmp.type === "Road" && tmp.lane === currentCrossLane) {
                             return tmp.itemId;
                         }
                     }
                 } else if (avenue === 1) {
                     for(let i = 0; i < item.crossItems[1].length; i++){
                         const tmp = items[item.crossItems[1][i]];
-                        if (tmp.type === "Road" && tmp.lane === r.lane) {
+                        if (tmp.type === "Road" && tmp.lane === currentCrossLane) {
                             return tmp.itemId;
                         }
                     }
@@ -2455,7 +2408,6 @@ const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=
                 n2i[link.box[1]]
             ],
             edge: link.edge,
-            gate: linkRoute.gate,
             route: route
         };
     });
@@ -2482,7 +2434,7 @@ const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=
         links: links1,
         linkAttrs: astL3.linkAttrs,
         docAttr: astL3.docAttr,
-        laneAttr: astL3.laneAttr,
+        locaAttr: astL3.locaAttr,
         items: items,
         linkItems: linkItems,
         n2i: n2i,
@@ -2493,21 +2445,23 @@ const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=
     }
     return astL4;
 };
-const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems, mainLaneMinNum, crossLaneMinNum)=>{
+const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainRoadsMap, nodeCrossRoadsMap, mainItems, mainLaneMinNum, crossLaneMinNum)=>{
     const node = nodes[nodeId];
     const nodeAttr = nodeAttrs[nodeId];
     const nodeType = node.type;
     if (nodeType === "Group" || nodeType === "Unit") {
-        let nodeMainMaxLane = nodeMainMaxLaneMap.get(nodeId);
-        if (!nodeMainMaxLane) {
-            nodeMainMaxLane = new Map();
+        let nodeMainRoads = nodeMainRoadsMap.get(nodeId);
+        if (!nodeMainRoads) {
+            nodeMainRoads = new Map();
+            nodeMainRoadsMap.set(nodeId, nodeMainRoads);
         }
-        let nodeCrossMaxLane = nodeCrossMaxLaneMap.get(nodeId);
-        if (!nodeCrossMaxLane) {
-            nodeCrossMaxLane = [
-                new Map(),
-                new Map()
+        let nodeCrossRoads = nodeCrossRoadsMap.get(nodeId);
+        if (!nodeCrossRoads) {
+            nodeCrossRoads = [
+                [],
+                []
             ];
+            nodeCrossRoadsMap.set(nodeId, nodeCrossRoads);
         }
         const mainItems = [];
         const crossItems = [
@@ -2529,7 +2483,6 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 ),
                 siblings: [],
                 links: node.links,
-                bnGates: getBnGates(node.links, allLinks, linkRoutes),
                 mainItems: mainItems,
                 crossItems: crossItems,
                 space: nodeAttr.space,
@@ -2566,15 +2519,13 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 throw new Error(`[E040201] invalid unreachable code.`);
             }
         }
-        let crossFirstLength = crossLaneMinNum;
-        for (const key of nodeCrossMaxLane[0].keys()){
-            if (key + 1 > crossFirstLength) {
-                crossFirstLength = key + 1;
-            }
+        const targetCrossFirstRoads = nodeCrossRoads[0];
+        let crossFirstLength = targetCrossFirstRoads.length;
+        if (crossFirstLength < crossLaneMinNum) {
+            crossFirstLength = crossLaneMinNum;
         }
         for(let i = 0; i < crossFirstLength; i++){
             const itemId = getItemId(idGen, null);
-            const links = nodeCrossMaxLane[0].get(i) || [];
             const load = {
                 itemId: itemId,
                 type: "Road",
@@ -2583,25 +2534,23 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 lane: i,
                 parents: node.parents.map((p)=>n2i[p]
                 ).concat(n2i[node.nodeId]),
-                links: links,
+                link: targetCrossFirstRoads[i] || null,
                 width: laneAttr.laneWidth[1]
             };
             items.push(load);
             crossItems[0].push(load.itemId);
         }
         for(let i1 = 0; i1 < node.children.length; i1++){
-            let mainLength = mainLaneMinNum;
-            const laneMap = nodeMainMaxLane.get(i1);
-            if (laneMap) {
-                for (const key of laneMap.keys()){
-                    if (key + 1 > mainLength) {
-                        mainLength = key + 1;
-                    }
-                }
+            let targetMainRoads = nodeMainRoads.get(i1);
+            if (targetMainRoads == null) {
+                targetMainRoads = [];
+            }
+            let mainLength = targetMainRoads.length;
+            if (mainLength < mainLaneMinNum) {
+                mainLength = mainLaneMinNum;
             }
             for(let j = 0; j < mainLength; j++){
                 const itemId = getItemId(idGen, null);
-                const links = laneMap?.get(j) || [];
                 const load = {
                     itemId: itemId,
                     type: "Road",
@@ -2611,26 +2560,24 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                     parents: node.parents.map((p)=>n2i[p]
                     ).concat(n2i[node.nodeId]),
                     siblings: [],
-                    links: links,
+                    link: targetMainRoads[j] || null,
                     width: laneAttr.laneWidth[0]
                 };
                 items.push(load);
                 mainItems.push(load.itemId);
             }
-            setNodeMap(node.children[i1], items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainMaxLaneMap, nodeCrossMaxLaneMap, mainItems, mainLaneMinNum, crossLaneMinNum);
+            setNodeMap(node.children[i1], items, nodes, nodeAttrs, allLinks, linkRoutes, laneAttr, idGen, n2i, nodeMainRoadsMap, nodeCrossRoadsMap, mainItems, mainLaneMinNum, crossLaneMinNum);
         }
-        let mainLength = mainLaneMinNum;
-        const laneMap = nodeMainMaxLane.get(node.children.length);
-        if (laneMap) {
-            for (const key of laneMap.keys()){
-                if (key + 1 > mainLength) {
-                    mainLength = key + 1;
-                }
-            }
+        let targetMainRoads = nodeMainRoads.get(node.children.length);
+        if (targetMainRoads == null) {
+            targetMainRoads = [];
+        }
+        let mainLength = targetMainRoads.length;
+        if (mainLength < mainLaneMinNum) {
+            mainLength = mainLaneMinNum;
         }
         for(let j = 0; j < mainLength; j++){
             const itemId = getItemId(idGen, null);
-            const links = laneMap?.get(j) || [];
             const load = {
                 itemId: itemId,
                 type: "Road",
@@ -2640,21 +2587,19 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 parents: node.parents.map((p)=>n2i[p]
                 ).concat(n2i[node.nodeId]),
                 siblings: [],
-                links: links,
+                link: targetMainRoads[j] || null,
                 width: laneAttr.laneWidth[0]
             };
             items.push(load);
             mainItems.push(load.itemId);
         }
-        let crossLastLength = crossLaneMinNum;
-        for (const key1 of nodeCrossMaxLane[1].keys()){
-            if (key1 + 1 > crossLastLength) {
-                crossLastLength = key1 + 1;
-            }
+        const targetCrossLastRoads = nodeCrossRoads[1];
+        let crossLastLength = targetCrossLastRoads.length;
+        if (crossLastLength < crossLaneMinNum) {
+            crossLastLength = crossLaneMinNum;
         }
         for(let i2 = 0; i2 < crossLastLength; i2++){
             const itemId = getItemId(idGen, null);
-            const links = nodeCrossMaxLane[1].get(i2) || [];
             const load = {
                 itemId: itemId,
                 type: "Road",
@@ -2663,7 +2608,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 lane: i2,
                 parents: node.parents.map((p)=>n2i[p]
                 ).concat(n2i[node.nodeId]),
-                links: links,
+                link: targetCrossLastRoads[i2] || null,
                 width: laneAttr.laneWidth[1]
             };
             items.push(load);
@@ -2682,7 +2627,6 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             ),
             siblings: [],
             links: node.links,
-            bnGates: getBnGates(node.links, allLinks, linkRoutes),
             size: nodeAttr.size,
             align: nodeAttr.align
         };
@@ -2692,35 +2636,6 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
         const _ = nodeType;
         return _;
     }
-};
-const getBnGates = (links, allLink, linkRoutes)=>{
-    const ret = [
-        0,
-        0,
-        0,
-        0
-    ];
-    links[0].forEach((linkId)=>{
-        const link = allLink[linkId];
-        const linkRoute = linkRoutes[linkId];
-        if (!link) {
-            throw new Error(`[E040201] asgR2 is invalid.`);
-        }
-        if (ret[link.edge[0]] < linkRoute.gate[0]) {
-            ret[link.edge[0]] = linkRoute.gate[0];
-        }
-    });
-    links[1].forEach((linkId)=>{
-        const link = allLink[linkId];
-        const linkRoute = linkRoutes[linkId];
-        if (!link) {
-            throw new Error(`[E040202] asgR2 is invalid.`);
-        }
-        if (ret[link.edge[1]] < linkRoute.gate[1]) {
-            ret[link.edge[1]] = linkRoute.gate[1];
-        }
-    });
-    return ret;
 };
 const getItemId = (idGen, nodeId)=>{
     const itemId = idGen.itemId;
@@ -2733,7 +2648,7 @@ const getItemId = (idGen, nodeId)=>{
     idGen.itemId++;
     return itemId;
 };
-const calcLoca = async (items)=>{
+const calcLoca = async (items, linkItems, locaAttr)=>{
     const sizes = [];
     getCalcSizeRecursive(0, items, sizes);
     const itemLocas = [];
@@ -2747,7 +2662,11 @@ const calcLoca = async (items)=>{
         ]
     };
     getCalcItemCoordRecursive(0, items, sizes, itemLocas);
-    return itemLocas;
+    const gateLocas = getCalcGateLoca(linkItems, items, itemLocas, locaAttr);
+    return [
+        itemLocas,
+        gateLocas
+    ];
 };
 const getCalcSizeRecursive = (itemId1, items, sizes)=>{
     const item1 = items[itemId1];
@@ -2949,16 +2868,78 @@ const getCalcItemCoordRecursive = (itemId2, items, sizes, itemLocas)=>{
         return _;
     }
 };
+const getCalcGateLoca = (linkItems, items, itemLocas, locaAttr)=>{
+    const itemEdgeInfoMap = new Map();
+    const gateLocas = [];
+    linkItems.forEach((linkItem)=>{
+        const linkId = linkItem.linkId;
+        const frItemId = linkItem.box[0];
+        const toItemId = linkItem.box[1];
+        let frItemEdgeInfo = itemEdgeInfoMap.get(frItemId);
+        if (!frItemEdgeInfo) {
+            frItemEdgeInfo = getItemEdgeInfo(frItemId, items, itemLocas, locaAttr);
+            itemEdgeInfoMap.set(frItemId, frItemEdgeInfo);
+        }
+        let toItemEdgeInfo = itemEdgeInfoMap.get(toItemId);
+        if (!toItemEdgeInfo) {
+            toItemEdgeInfo = getItemEdgeInfo(toItemId, items, itemLocas, locaAttr);
+            itemEdgeInfoMap.set(toItemId, toItemEdgeInfo);
+        }
+        const frItemInfo = frItemEdgeInfo[linkItem.edge[0]];
+        const toItemInfo = toItemEdgeInfo[linkItem.edge[1]];
+        const frCurrent = frItemInfo.currentGate;
+        const toCurrent = toItemInfo.currentGate;
+        frItemInfo.currentGate = frCurrent + 1;
+        toItemInfo.currentGate = toCurrent + 1;
+        gateLocas[linkId] = {
+            linkId: linkId,
+            coords: [
+                frItemInfo.startCood + locaAttr.gate_gap[frItemInfo.absoluteAxis] * frCurrent,
+                toItemInfo.startCood + locaAttr.gate_gap[toItemInfo.absoluteAxis] * toCurrent, 
+            ]
+        };
+    });
+    return gateLocas;
+};
+const getItemEdgeInfo = (itemId, items, itemLocas, locaAttr)=>{
+    const item = items[itemId];
+    const itemLoca = itemLocas[itemId];
+    if (!(item.type === 'Group' || item.type === 'Cell')) {
+        throw new Error(`[E310501] invalid unreachable code.`);
+    }
+    const compass = getCompassFull(item.compassSelf);
+    const getItemEdgeInfo1 = (d)=>{
+        const direct = compass[d];
+        const absoluteAxis = getAnotherAxisByDirect(direct);
+        const num = item.links[0][d].length + item.links[1][d].length;
+        const allGateLen = num === 0 ? 0 : (num - 1) * locaAttr.gate_gap[direct];
+        const edgeLength = itemLoca.size[absoluteAxis];
+        return {
+            absoluteAxis: absoluteAxis,
+            startCood: Math.floor((edgeLength - allGateLen) / 2),
+            currentGate: 0
+        };
+    };
+    return [
+        getItemEdgeInfo1(0),
+        getItemEdgeInfo1(1),
+        getItemEdgeInfo1(2),
+        getItemEdgeInfo1(3), 
+    ];
+};
 const parse4 = async (astL4, { pre , post , calc  } = {})=>{
     if (pre) {
         astL4 = await pre(astL4);
     }
     const items = astL4.items;
+    const linkItems = astL4.linkItems;
+    const locaAttr = astL4.locaAttr;
     let itemLocas;
+    let gateLocas;
     if (calc) {
-        itemLocas = await calc(items, astL4);
+        [itemLocas, gateLocas] = await calc(items, linkItems, locaAttr, astL4);
     } else {
-        itemLocas = await calcLoca(items);
+        [itemLocas, gateLocas] = await calcLoca(items, linkItems, locaAttr);
     }
     let astL5 = {
         nodes: astL4.nodes,
@@ -2966,12 +2947,13 @@ const parse4 = async (astL4, { pre , post , calc  } = {})=>{
         links: astL4.links,
         linkAttrs: astL4.linkAttrs,
         docAttr: astL4.docAttr,
-        laneAttr: astL4.laneAttr,
+        locaAttr: astL4.locaAttr,
         n2i: astL4.n2i,
         i2n: astL4.i2n,
         items: astL4.items,
-        linkItems: astL4.linkItems,
-        itemLocas: itemLocas
+        linkItems: linkItems,
+        itemLocas: itemLocas,
+        gateLocas: gateLocas
     };
     if (post) {
         astL5 = await post(astL5);
@@ -3081,7 +3063,8 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
     });
     astL5.linkItems.forEach((linkItem)=>{
         const xys = [];
-        let currentXY = getGateXY(linkItem.box[0], linkItem.edge[0], linkItem.gate[0], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
+        const gateLoca = astL5.gateLocas[linkItem.linkId];
+        let currentXY = getGateXY(linkItem.box[0], linkItem.edge[0], gateLoca.coords[0], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
         xys.push(currentXY);
         linkItem.route.forEach((itemId, i)=>{
             const item = astL5.items[itemId];
@@ -3108,7 +3091,7 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
             }
             xys.push(currentXY);
             if (i === linkItem.route.length - 1) {
-                const lastXY = getGateXY(linkItem.box[1], linkItem.edge[1], linkItem.gate[1], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
+                const lastXY = getGateXY(linkItem.box[1], linkItem.edge[1], gateLoca.coords[1], astL5.items, itemLocas, astL5.nodeAttrs, astL5.i2n, astL5.docAttr);
                 if (compassAxis[0] !== item.axis) {
                     currentXY = [
                         lastXY[0],
@@ -3134,7 +3117,7 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
         links: astL5.links,
         linkAttrs: astL5.linkAttrs,
         docAttr: astL5.docAttr,
-        laneAttr: astL5.laneAttr,
+        locaAttr: astL5.locaAttr,
         n2i: astL5.n2i,
         i2n: astL5.i2n,
         items: astL5.items,
@@ -3150,7 +3133,7 @@ const parse5 = async (astL5, { pre , post  } = {})=>{
     }
     return astL6;
 };
-const getGateXY = (itemId, direct, gate, items, itemLocas, nodeAttrs, i2n, docAttr)=>{
+const getGateXY = (itemId, direct, gateCoord, items, itemLocas, nodeAttrs, i2n, docAttr)=>{
     const item = items[itemId];
     const parentItem = items[item.parents[item.parents.length - 1]];
     if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
@@ -3171,27 +3154,24 @@ const getGateXY = (itemId, direct, gate, items, itemLocas, nodeAttrs, i2n, docAt
     if (!(nodeAttr.type === 'Group' || nodeAttr.type === 'Cell')) {
         throw new Error(`[E060204] invalid unreachable code.`);
     }
-    const gateNum = item.bnGates[direct];
-    const allGateLen = gateNum === 0 ? 0 : (gateNum - 1) * docAttr.gate_gap[direct];
-    const targetGateLen = gate === 0 ? 0 : (gate - 1) * docAttr.gate_gap[direct];
     if (direct === 0) {
         return [
             itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[direct],
-            itemLoca.xy[1] + Math.floor((itemLoca.size[1] - allGateLen) / 2) + targetGateLen, 
+            itemLoca.xy[1] + gateCoord, 
         ];
     } else if (direct === 1) {
         return [
-            itemLoca.xy[0] + Math.floor((itemLoca.size[0] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[0] + gateCoord,
             itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[direct], 
         ];
     } else if (direct === 2) {
         return [
             itemLoca.xy[0] + nodeAttr.margin[direct],
-            itemLoca.xy[1] + Math.floor((itemLoca.size[1] - allGateLen) / 2) + targetGateLen, 
+            itemLoca.xy[1] + gateCoord, 
         ];
     } else if (direct === 3) {
         return [
-            itemLoca.xy[0] + Math.floor((itemLoca.size[0] - allGateLen) / 2) + targetGateLen,
+            itemLoca.xy[0] + gateCoord,
             itemLoca.xy[1] + nodeAttr.margin[direct], 
         ];
     } else {
@@ -3217,7 +3197,7 @@ const parse6 = async (astL6, { pre , post  } = {})=>{
             sb.push(`<text x="${cellDisp.xy[0] + Math.floor(cellDisp.size[0] / 2)}" y="${cellDisp.xy[1] + Math.floor(cellDisp.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text}</text>`);
         }
     });
-    const laneWidth = astL6.laneAttr.laneWidth.map((x)=>Math.floor(x * 0.6)
+    const laneWidth = astL6.locaAttr.laneWidth.map((x)=>Math.floor(x * 0.6)
     );
     const laneWidthDouble = laneWidth.map((x)=>Math.floor(x * 2)
     );

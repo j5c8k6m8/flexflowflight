@@ -7,7 +7,7 @@ export type AstL2 = {
     // The root node is always accessible with index 0.
     nodes: Node[];
     links: Link[];
-    laneAttr: LaneAttr;
+    locaAttr: LocaAttr;
     nodeAttrs: NodeAttr[];
     linkAttrs: LinkAttr[];
     docAttr: DocAttr;
@@ -24,7 +24,7 @@ export type Group = {
     parents: NodeId[];
     children: NodeId[];
     siblings: NodeId[];
-    links: [LinkId[], LinkId[]];
+    links: [[LinkId[], LinkId[], LinkId[], LinkId[]], [LinkId[], LinkId[], LinkId[], LinkId[]]];
     // bnParents is 'b'oundary 'n'umber of parents.
     bnParents: EdgeNumber;
 };
@@ -47,7 +47,7 @@ export type Cell = {
     compassSelf: Compass;
     parents: NodeId[];
     siblings: NodeId[];
-    links: [LinkId[], LinkId[]];
+    links: [[LinkId[], LinkId[], LinkId[], LinkId[]], [LinkId[], LinkId[], LinkId[], LinkId[]]];
     // bnParents is boundary number of parents.
     bnParents: EdgeNumber;
 };
@@ -70,7 +70,6 @@ export type DocAttr = {
     group_padding: EdgeNumber;
     group_border: EdgeNumber;
     group_margin: EdgeNumber;
-    gate_gap: EdgeNumber;
     char_width: number;
     char_height: number;
     link_border: number;
@@ -121,8 +120,9 @@ export type LinkAttr = {
     node: [AccessName, AccessName];
 };
 
-export type LaneAttr = {
+export type LocaAttr = {
     // RoadMain width ,RoadCross width
     laneWidth: [number, number];
     laneMin: number;
+    gate_gap: EdgeNumber;
 };

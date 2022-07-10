@@ -1,30 +1,12 @@
-import { NodeId, GateNo, Direct, CrossAvenue, getMappingCompassFull, isSameAxisDirect, getAnotherAxisByDirect, getReverse } from "./astC0.ts"
-import { Node, Link, LaneAttr } from "./astL2.ts"
+import { NodeId, Direct, getMappingCompassFull, isSameAxisDirect, getAnotherAxisByDirect, getReverse } from "./astC0.ts"
+import { Node, Link } from "./astL2.ts"
 import { LinkRoute, Road } from "./astL3.ts"
-
-export type RailWithoutLane = RailMainWithoutLane | RailCrossWithoutLane;
-export type RailMainWithoutLane = {
-    containerId: number;
-    axis: 0;
-    // axisIndex is between 0 to children.length.
-    axisIndex: number;
-};
-export type RailCrossWithoutLane = {
-    containerId: number;
-    axis: 1;
-    // axisIndex is 0 or 1.
-    axisIndex: CrossAvenue;
-};
 
 // FILE ERROR ID = '21'
 // deno-lint-ignore require-await
-export const calcRoute = async (nodes: Node[], links: Link[], _laneAttr: LaneAttr): Promise<LinkRoute[]> => {
+export const calcRoute = async (nodes: Node[], links: Link[]): Promise<LinkRoute[]> => {
     // FUNCTION ERROR ID = '01'
     const linkRoutes: LinkRoute[] = []
-
-    const nodeEntryLaneMap: Map<NodeId, [GateNo, GateNo, GateNo, GateNo]> = new Map();
-    const nodeMainLaneMap: Map<NodeId, Map<number, GateNo>> = new Map();
-    const nodeCrossLaneMap: Map<NodeId, [GateNo, GateNo]> = new Map();
 
     links.forEach(link => {
         const fromNodeId = link.box[0];
@@ -57,83 +39,21 @@ export const calcRoute = async (nodes: Node[], links: Link[], _laneAttr: LaneAtt
         if (fromCommonParentIndex == -1) {
             throw new Error(`[E030105] asgR1 is invalid.`);
         }
-        const fromRoutes: [Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null] = [null, null, null, null];
-        const toRoutes: [Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null] = [null, null, null, null];
+        const fromRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null] = [null, null, null, null];
+        const toRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null] = [null, null, null, null];
         getRoutesWithoutLane(fromNode, link.edge[0], fromCommonParentIndex, [], fromRoutes, [0, 1, 2, 3], nodes, 1);
         getRoutesWithoutLane(toNode, link.edge[1], toCommonParentIndex, [], toRoutes, [2, 3, 0, 1], nodes, 1);
-        const routeWithoutLane = getBestRouteWithoutLane(fromRoutes, toRoutes, fromNodeId, toNodeId);
-        const route = routeWithoutLane.map((railWithoutLane): Road => {
-            const axis = railWithoutLane.axis
-            if (axis === 0) {
-                let indexMap = nodeMainLaneMap.get(railWithoutLane.containerId);
-                if (!indexMap) {
-                    indexMap = new Map();
-                    nodeMainLaneMap.set(railWithoutLane.containerId, indexMap);
-                }
-                const lane = indexMap.get(railWithoutLane.axisIndex);
-                if (lane != null) {
-                    indexMap.set(railWithoutLane.axisIndex, lane + 1);
-                    return {
-                        containerId: railWithoutLane.containerId,
-                        axis: railWithoutLane.axis,
-                        avenue: railWithoutLane.axisIndex,
-                        lane: lane,
-                    }
-                } else {
-                    indexMap.set(railWithoutLane.axisIndex, 1);
-                    return {
-                        containerId: railWithoutLane.containerId,
-                        axis: railWithoutLane.axis,
-                        avenue: railWithoutLane.axisIndex,
-                        lane: 0,
-                    }
-                }
-            } else if (axis === 1) {
-                let lanes = nodeCrossLaneMap.get(railWithoutLane.containerId);
-                if (!lanes) {
-                    lanes = [1, 1];
-                    nodeCrossLaneMap.set(railWithoutLane.containerId, lanes);
-                }
-                const lane = lanes[railWithoutLane.axisIndex];
-                lanes[railWithoutLane.axisIndex] = lane + 1;
-                return {
-                    containerId: railWithoutLane.containerId,
-                    axis: railWithoutLane.axis,
-                    avenue: railWithoutLane.axisIndex,
-                    lane: lane,
-                }
-            } else {
-                const _: never = axis;
-                return _;
-            }
+        const route = getBestRouteWithoutLane(fromRoutes, toRoutes, fromNodeId, toNodeId);
 
-        });
-
-        let frNodeEntryLane = nodeEntryLaneMap.get(link.box[0]);
-        if (!frNodeEntryLane) {
-            frNodeEntryLane = [1, 1, 1, 1];
-            nodeEntryLaneMap.set(link.box[0], frNodeEntryLane)
-        }
-        const frLane = frNodeEntryLane[link.edge[0]];
-        frNodeEntryLane[link.edge[0]] += 1;
-
-        let toNodeEntryLane = nodeEntryLaneMap.get(link.box[1]);
-        if (!toNodeEntryLane) {
-            toNodeEntryLane = [1, 1, 1, 1];
-            nodeEntryLaneMap.set(link.box[1], toNodeEntryLane)
-        }
-        const toLane = toNodeEntryLane[link.edge[1]];
-        toNodeEntryLane[link.edge[1]] += 1;
         linkRoutes.push({
             linkId: link.linkId,
-            gate: [frLane, toLane],
             route: route,
         });
     });
     return linkRoutes;
 }
 
-const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, currentRoute: Array<RailWithoutLane>, routes: [Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null], directPriority: [Direct, Direct, Direct, Direct], nodeMap: Node[], callNum: number): void => {
+const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, currentRoute: Array<Road>, routes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], directPriority: [Direct, Direct, Direct, Direct], nodeMap: Node[], callNum: number): void => {
     // FUNCTION ERROR ID = '02'
     // Avoid infinite loops.
     if (callNum > 100) {
@@ -173,36 +93,36 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
     } else {
         siblingIndex = node.siblings.indexOf(node.nodeId);
     }
-    let railWithoutLane: RailWithoutLane;
+    let Road: Road;
     if (railDirect === 0) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 0,
-            axisIndex: siblingIndex + 1,
+            avenue: siblingIndex + 1,
         }
     } else if (railDirect === 1) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 1,
-            axisIndex: 1,
+            avenue: 1,
         }
     } else if (railDirect === 2) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 0,
-            axisIndex: siblingIndex,
+            avenue: siblingIndex,
         }
     } else if (railDirect === 3) {
-        railWithoutLane = {
+        Road = {
             containerId: targetNodeId,
             axis: 1,
-            axisIndex: 0,
+            avenue: 0,
         }
     } else {
         const _: never = railDirect;
         return _;
     }
-    currentRoute = currentRoute.concat(railWithoutLane);
+    currentRoute = currentRoute.concat(Road);
     if (node.bnParents[direct] - 1 >= parentIndex) {
         const lastRoutes = routes[railDirect];
         if (lastRoutes == null || lastRoutes.length > currentRoute.length) {
@@ -227,10 +147,11 @@ const getRoutesWithoutLane = (node: Node, direct: Direct, parentIndex: number, c
         });
     }
 }
-const getBestRouteWithoutLane = (fromRoutes: [Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null], toRoutes: [Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null, Array<RailWithoutLane> | null], fromLinkNodeId: NodeId, toLinkNodeId: NodeId): Array<RailWithoutLane> => {
+
+const getBestRouteWithoutLane = (fromRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], toRoutes: [Array<Road> | null, Array<Road> | null, Array<Road> | null, Array<Road> | null], fromLinkNodeId: NodeId, toLinkNodeId: NodeId): Array<Road> => {
     // FUNCTION ERROR ID = '03'
     const allDirect: Direct[] = [0, 1, 2, 3];
-    let ret: Array<RailWithoutLane> | null = null;
+    let ret: Array<Road> | null = null;
     let retScore = Number.MAX_SAFE_INTEGER;
     allDirect.forEach(i => {
         const fromRoute = fromRoutes[i];
@@ -245,7 +166,7 @@ const getBestRouteWithoutLane = (fromRoutes: [Array<RailWithoutLane> | null, Arr
             const fromLastRoute = fromRoute[fromRoute.length - 1];
             const toLastRoute = toRoute[toRoute.length - 1];
             if (i === j) {
-                if (fromLastRoute.axisIndex === toLastRoute.axisIndex) {
+                if (fromLastRoute.avenue === toLastRoute.avenue) {
                     const tmpScore = (fromRoute.length + toRoute.length - 1) * 10 + 4;
                     if (tmpScore < retScore) {
                         retScore = tmpScore;
@@ -258,13 +179,13 @@ const getBestRouteWithoutLane = (fromRoutes: [Array<RailWithoutLane> | null, Arr
                         ret = fromRoute.concat({
                             containerId: fromLastRoute.containerId,
                             axis: getAnotherAxisByDirect(i),
-                            axisIndex: 0,
+                            avenue: 0,
                         }).concat([...toRoute].reverse());
                     }
                 }
             } else {
                 if (i === getReverse(j)) {
-                    if (fromLastRoute.axisIndex === toLastRoute.axisIndex) {
+                    if (fromLastRoute.avenue === toLastRoute.avenue) {
                         const tmpScore = (fromRoute.length + toRoute.length - 1) * 10;
                         if (tmpScore < retScore) {
                             retScore = tmpScore;
@@ -280,7 +201,7 @@ const getBestRouteWithoutLane = (fromRoutes: [Array<RailWithoutLane> | null, Arr
                             ret = fromRoute.concat({
                                 containerId: fromLastRoute.containerId,
                                 axis: getAnotherAxisByDirect(i),
-                                axisIndex: 0,
+                                avenue: 0,
                             }).concat([...toRoute].reverse());
                         }
                     }

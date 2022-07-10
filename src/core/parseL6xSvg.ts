@@ -25,7 +25,7 @@ export const parse = async (astL6: AstL6, { pre, post, }: Options = {}): Promise
             sb.push(`<text x="${cellDisp.xy[0] + Math.floor(cellDisp.size[0] / 2)}" y="${cellDisp.xy[1] + Math.floor(cellDisp.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text}</text>`);
         }
     });
-    const laneWidth = astL6.laneAttr.laneWidth.map(x => Math.floor(x * 0.6));
+    const laneWidth = astL6.locaAttr.laneWidth.map(x => Math.floor(x * 0.6));
     const laneWidthDouble = laneWidth.map(x => Math.floor(x * 2))
     astL6.linkDisps.forEach(linkDisp => {
         const pathSb: string[] = [];

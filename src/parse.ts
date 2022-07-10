@@ -1,9 +1,9 @@
 import { Name } from "./core/astC1.ts"
 import { AstL1, Cell as CellL1 } from "./core/astL1.ts"
-import { AstL2, Node, Link, LaneAttr, DocAttr } from "./core/astL2.ts"
+import { AstL2, Node, Link, LocaAttr, DocAttr } from "./core/astL2.ts"
 import { AstL3, LinkRoute } from "./core/astL3.ts"
-import { AstL4, Item } from "./core/astL4.ts"
-import { AstL5, ItemLoca } from "./core/astL5.ts"
+import { AstL4, Item, LinkItem } from "./core/astL4.ts"
+import { AstL5, ItemLoca, GateLoca } from "./core/astL5.ts"
 import { AstL6 } from "./core/astL6.ts"
 import { parse as parseFl3xL1 } from "./core/parseFl3xL1.ts"
 import { parse as parseL1xL2 } from "./core/parseL1xL2.ts"
@@ -16,8 +16,8 @@ import { parse as parseL6xSvg } from "./core/parseL6xSvg.ts"
 type Options = {
     debug?: boolean,
     textSize?: (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>,
-    calcRoute?: (nodes: Node[], links: Link[], laneAttr: LaneAttr, astL2: AstL2) => Promise<LinkRoute[]>,
-    calcLoca?: (items: Item[], astL4: AstL4) => Promise<ItemLoca[]>,
+    calcRoute?: (nodes: Node[], links: Link[], astL2: AstL2) => Promise<LinkRoute[]>,
+    calcLoca?: (items: Item[], linkItems: LinkItem[], locaAttr: LocaAttr, astL4: AstL4) => Promise<[ItemLoca[], GateLoca[]]>,
 }
 export type Parse = (fl3: string, option: Options) => Promise<string>;
 

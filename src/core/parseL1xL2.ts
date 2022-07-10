@@ -42,7 +42,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
     const links: Array<LinkL2> = [];
     const linkAttrs: Array<LinkAttr> = [];
     const docAttr = parseDocAttr(astL1);
-    const laneAttr = parseLaneAttr(astL1);
+    const locaAttr = parseLaneAttr(astL1);
 
     const idGen: IdGen = {
         nodeId: 0,
@@ -147,14 +147,14 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
                     // unreachable code
                     throw new Error(`[E_] .`);
                 } else {
-                    fnode.links[0].push(link2.linkId);
+                    fnode.links[0][link2.edge[0]].push(link2.linkId);
                 }
                 const tnode = nodes[t.nodeId];
                 if (tnode.type === 'Unit') {
                     // unreachable code
                     throw new Error(`[E_] .`);
                 } else {
-                    tnode.links[1].push(link2.linkId);
+                    tnode.links[1][link2.edge[1]].push(link2.linkId);
                 }
             });
         })
@@ -166,7 +166,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
         links: links,
         linkAttrs: linkAttrs,
         docAttr: docAttr,
-        laneAttr: laneAttr,
+        locaAttr: locaAttr,
     }
     if (post) {
         astL2 = await post(astL2);
@@ -200,7 +200,7 @@ const parseGroup = (l1: GroupL1, parent: ContainerL2, parents: Array<number>, si
         parents: parents,
         children: [],
         siblings: parent.children,
-        links: [[], []],
+        links: [[[], [], [], []], [[], [], [], []]],
         bnParents: edge,
     };
 }
@@ -230,7 +230,7 @@ const parseCell = (l1: CellL1, parent: ContainerL2, parents: Array<number>, sibl
         compassSelf: parent.compassItems,
         parents: parents,
         siblings: parent.children,
-        links: [[], []],
+        links: [[[], [], [], []], [[], [], [], []]],
         bnParents: edge,
     };
 }
