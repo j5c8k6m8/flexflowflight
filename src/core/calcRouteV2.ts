@@ -62,7 +62,6 @@ export const calcRoute = async (nodes: Node[], links: Link[], astL2: AstL2): Pro
 const getRoutes = (currentRoad: Road, currentXY: XY, currentDistance: number, lastNode: Node, lastDirect: Direct, lastXY: XY, currentRoute: Road[], nodes: Node[], astL6: AstL6, callNum: number, limitDistance: number | null): [Road[] | null, number | null] => {
     // FUNCTION ERROR ID = '02'
     // Avoid infinite loops.
-    console.log(callNum, currentRoad, currentRoute)
     if (callNum > 1000) {
         throw new Error(`[E220201] nest too deep.`);
     }
@@ -106,8 +105,6 @@ const getRoutes = (currentRoad: Road, currentXY: XY, currentDistance: number, la
             }
             if (container.compassItems[0] < 2) {
                 if (candidateRoad.avenue < container.children.length) {
-                    console.log(candidateRoad.avenue);
-                    console.log(container.children);
                     targetXY = astL6.itemLocas[astL6.n2i[container.children[candidateRoad.avenue]]].xy;
                 } else {
                     const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];
