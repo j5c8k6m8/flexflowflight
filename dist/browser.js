@@ -1116,6 +1116,16 @@ const isSameAxisDirect = (d1, d2)=>{
         return _;
     }
 };
+const getSameAxisByDirect = (d)=>{
+    if (d === 0 || d === 2) {
+        return 0;
+    } else if (d === 1 || d === 3) {
+        return 1;
+    } else {
+        const _ = d;
+        return _;
+    }
+};
 const getAnotherAxisByDirect = (d)=>{
     if (d === 0 || d === 2) {
         return 1;
@@ -2014,16 +2024,16 @@ const calcRoute = async (nodes, links)=>{
         const fromNode = nodes[fromNodeId];
         const toNode = nodes[toNodeId];
         if (!fromNode) {
-            throw new Error(`[E030101] asgR1 is invalid.`);
+            throw new Error(`[E210101] asgR1 is invalid.`);
         }
         if (!toNode) {
-            throw new Error(`[E030102] asgR1 is invalid.`);
+            throw new Error(`[E210102] asgR1 is invalid.`);
         }
         if (fromNode.parents.includes(toNodeId)) {
-            throw new Error(`[E030103] between parents link is invalid.`);
+            throw new Error(`[E210103] between parents link is invalid.`);
         }
         if (toNode.parents.includes(fromNodeId)) {
-            throw new Error(`[E030104] between parents link is invalid.`);
+            throw new Error(`[E210104] between parents link is invalid.`);
         }
         const fromParentsR = [
             ...fromNode.parents
@@ -2041,7 +2051,7 @@ const calcRoute = async (nodes, links)=>{
             }
         }
         if (fromCommonParentIndex == -1) {
-            throw new Error(`[E030105] asgR1 is invalid.`);
+            throw new Error(`[E210105] asgR1 is invalid.`);
         }
         const fromRoutes = [
             null,
@@ -2077,17 +2087,9 @@ const calcRoute = async (nodes, links)=>{
 };
 const getRoutes = (node, direct, parentIndex, currentRoute, routes, directPriority, nodeMap, callNum)=>{
     if (callNum > 1000) {
-        throw new Error(`[E030201] nest too deep.`);
+        throw new Error(`[E210201] nest too deep.`);
     }
     callNum++;
-    const parentNodeId = node.parents[node.parents.length - 1];
-    const parentNode = nodeMap[parentNodeId];
-    if (!parentNode) {
-        throw new Error(`[E030205] asgR1 is invalid.`);
-    }
-    if (parentNode.type !== 'Group' && parentNode.type !== 'Unit') {
-        throw new Error(`[E030206] asgR1 is invalid.`);
-    }
     let targetIndex;
     if (node.bnParents[direct] - 1 >= parentIndex) {
         targetIndex = parentIndex;
@@ -2098,46 +2100,40 @@ const getRoutes = (node, direct, parentIndex, currentRoute, routes, directPriori
         ...node.parents
     ].reverse()[targetIndex];
     if (!targetNodeId == null) {
-        throw new Error(`[E030202] asgR1 is invalid.`);
+        throw new Error(`[E210202] asgR1 is invalid.`);
     }
     const targetNode = nodeMap[targetNodeId];
     if (!targetNode) {
-        throw new Error(`[E030203] asgR1 is invalid.`);
+        throw new Error(`[E210203] asgR1 is invalid.`);
     }
     if (targetNode.type !== 'Group' && targetNode.type !== 'Unit') {
         throw new Error(`[E030204] asgR1 is invalid.`);
     }
-    const railDirect = getMappingCompassFull(parentNode.compassItems, targetNode.compassItems)[direct];
-    let siblingIndex;
-    if (targetIndex > 0) {
-        const targetChildNodeId = [
-            ...node.parents
-        ].reverse()[targetIndex - 1];
-        siblingIndex = targetNode.children.indexOf(targetChildNodeId);
-    } else {
-        siblingIndex = node.siblings.indexOf(node.nodeId);
-    }
-    let Road;
+    const railDirect = getMappingCompassFull(node.compassSelf, targetNode.compassItems)[direct];
+    const siblingIndex = targetNode.children.indexOf(targetIndex > 0 ? [
+        ...node.parents
+    ].reverse()[targetIndex - 1] : node.nodeId);
+    let road;
     if (railDirect === 0) {
-        Road = {
+        road = {
             containerId: targetNodeId,
             axis: 0,
             avenue: siblingIndex + 1
         };
     } else if (railDirect === 1) {
-        Road = {
+        road = {
             containerId: targetNodeId,
             axis: 1,
             avenue: 1
         };
     } else if (railDirect === 2) {
-        Road = {
+        road = {
             containerId: targetNodeId,
             axis: 0,
             avenue: siblingIndex
         };
     } else if (railDirect === 3) {
-        Road = {
+        road = {
             containerId: targetNodeId,
             axis: 1,
             avenue: 0
@@ -2146,7 +2142,7 @@ const getRoutes = (node, direct, parentIndex, currentRoute, routes, directPriori
         const _ = railDirect;
         return _;
     }
-    currentRoute = currentRoute.concat(Road);
+    currentRoute = currentRoute.concat(road);
     if (node.bnParents[direct] - 1 >= parentIndex) {
         const lastRoutes = routes[railDirect];
         if (lastRoutes == null || lastRoutes.length > currentRoute.length) {
@@ -2157,10 +2153,10 @@ const getRoutes = (node, direct, parentIndex, currentRoute, routes, directPriori
         const targetParentNodeId = targetNode.parents[targetNode.parents.length - 1];
         const targetParentNode = nodeMap[targetParentNodeId];
         if (!targetParentNode) {
-            throw new Error(`[E030207] asgR1 is invalid.`);
+            throw new Error(`[E210207] asgR1 is invalid.`);
         }
         if (targetParentNode.type !== 'Group' && targetParentNode.type !== 'Unit') {
-            throw new Error(`[E030208] asgR1 is invalid.`);
+            throw new Error(`[E210208] asgR1 is invalid.`);
         }
         const nextMappingCompassFull = getMappingCompassFull(targetNode.compassItems, targetParentNode.compassItems);
         directPriority.forEach((d)=>{
@@ -2252,37 +2248,11 @@ const getBestRoute = (fromRoutes, toRoutes, fromLinkNodeId, toLinkNodeId)=>{
         });
     });
     if (!ret) {
-        throw new Error(`[E030301] asgR1 is invalid.`);
+        throw new Error(`[E210301] asgR1 is invalid.`);
     }
     return ret;
 };
-const parse2 = async (astL2, { pre , post , calc  } = {})=>{
-    if (pre) {
-        astL2 = await pre(astL2);
-    }
-    const nodes = astL2.nodes;
-    const links = astL2.links;
-    let linkRoutes;
-    if (calc) {
-        linkRoutes = await calc(nodes, links, astL2);
-    } else {
-        linkRoutes = await calcRoute(nodes, links);
-    }
-    let astL3 = {
-        nodes: astL2.nodes,
-        nodeAttrs: astL2.nodeAttrs,
-        links: astL2.links,
-        linkAttrs: astL2.linkAttrs,
-        docAttr: astL2.docAttr,
-        locaAttr: astL2.locaAttr,
-        linkRoutes: linkRoutes
-    };
-    if (post) {
-        astL3 = await post(astL3);
-    }
-    return astL3;
-};
-const parse3 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=>{
+const parse2 = async (astL3, { pre , post , mainLaneMin , crossLaneMin  } = {})=>{
     if (pre) {
         astL3 = await pre(astL3);
     }
@@ -2927,7 +2897,7 @@ const getItemEdgeInfo = (itemId, items, itemLocas, locaAttr)=>{
         getItemEdgeInfo1(3), 
     ];
 };
-const parse4 = async (astL4, { pre , post , calc  } = {})=>{
+const parse3 = async (astL4, { pre , post , calc  } = {})=>{
     if (pre) {
         astL4 = await pre(astL4);
     }
@@ -2960,7 +2930,7 @@ const parse4 = async (astL4, { pre , post , calc  } = {})=>{
     }
     return astL5;
 };
-const parse5 = async (astL5, { pre , post  } = {})=>{
+const parse4 = async (astL5, { pre , post  } = {})=>{
     if (pre) {
         astL5 = await pre(astL5);
     }
@@ -3179,6 +3149,626 @@ const getGateXY = (itemId, direct, gateCoord, items, itemLocas, nodeAttrs, i2n, 
         return _;
     }
 };
+const calcRoute1 = async (nodes, links, astL2)=>{
+    const dummyAstL3 = {
+        nodes: astL2.nodes,
+        nodeAttrs: astL2.nodeAttrs,
+        links: [],
+        linkAttrs: astL2.linkAttrs,
+        docAttr: astL2.docAttr,
+        locaAttr: astL2.locaAttr,
+        linkRoutes: []
+    };
+    const dummyAstL4 = await parse2(dummyAstL3, {
+        mainLaneMin: 1,
+        crossLaneMin: 1
+    });
+    const dummyAstL5 = await parse3(dummyAstL4);
+    const dummyAstL6 = await parse4(dummyAstL5);
+    const linkRoutes = [];
+    links.forEach((link)=>{
+        const fromNodeId = link.box[0];
+        const toNodeId = link.box[1];
+        const fromDirect = link.edge[0];
+        const toDirect = link.edge[1];
+        const fromNode = nodes[fromNodeId];
+        const toNode = nodes[toNodeId];
+        if (!fromNode) {
+            throw new Error(`[E220101] asgR1 is invalid.`);
+        }
+        if (!toNode) {
+            throw new Error(`[E220102] asgR1 is invalid.`);
+        }
+        const currentRoad = getRoad(fromNode, fromDirect, toNode, nodes);
+        const fromXY = getGateXY1(fromNode, fromDirect, dummyAstL6);
+        const toXY = getGateXY1(toNode, toDirect, dummyAstL6);
+        const [route, _distance] = getRoutes1(currentRoad, fromXY, 0, toNode, toDirect, toXY, [], nodes, dummyAstL6, 1, null);
+        if (route == null) {
+            throw new Error(`[E220104] invalid.`);
+        }
+        linkRoutes.push({
+            linkId: link.linkId,
+            route: route
+        });
+    });
+    return linkRoutes;
+};
+const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
+    console.log(callNum, currentRoad, currentRoute);
+    if (callNum > 1000) {
+        throw new Error(`[E220201] nest too deep.`);
+    }
+    callNum++;
+    currentRoute = currentRoute.concat(currentRoad);
+    if (isRoadReach(currentRoad, lastNode, lastDirect, nodes)) {
+        const roadAxis = getRoadAbsAxis(currentRoad, nodes);
+        const retDistance = currentDistance + Math.abs(currentXY[roadAxis] - lastXY[roadAxis]);
+        if (limitDistance == null || retDistance < limitDistance) {
+            return [
+                currentRoute,
+                retDistance
+            ];
+        } else {
+            return [
+                null,
+                null
+            ];
+        }
+    }
+    const allCandidateRoads = getNextAllRoads(currentRoad, lastNode, nodes);
+    const candidateRoads = allCandidateRoads.filter((c)=>{
+        let notFindFlg = true;
+        for(let i = 0; i < currentRoute.length; i++){
+            const road = currentRoute[i];
+            if (road.containerId === c.containerId && road.axis === c.axis && road.avenue === c.avenue) {
+                notFindFlg = false;
+                break;
+            }
+        }
+        return notFindFlg;
+    });
+    const frontCandidateNum = 3;
+    const backCandidateNum = 2;
+    let frontCandidateRoads = [];
+    let backCandidateRoads = [];
+    candidateRoads.forEach((candidateRoad)=>{
+        let targetXY;
+        if (candidateRoad.axis === 0) {
+            const container = nodes[candidateRoad.containerId];
+            if (!(container.type === 'Group' || container.type === 'Unit')) {
+                throw new Error(`[E220203] invalid.`);
+            }
+            if (container.compassItems[0] < 2) {
+                if (candidateRoad.avenue < container.children.length) {
+                    console.log(candidateRoad.avenue);
+                    console.log(container.children);
+                    targetXY = astL6.itemLocas[astL6.n2i[container.children[candidateRoad.avenue]]].xy;
+                } else {
+                    const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];
+                    targetXY = [
+                        itemLoca.xy[0] + itemLoca.size[0],
+                        itemLoca.xy[1] + itemLoca.size[1], 
+                    ];
+                }
+            } else {
+                if (candidateRoad.avenue === 0) {
+                    const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];
+                    targetXY = [
+                        itemLoca.xy[0] + itemLoca.size[0],
+                        itemLoca.xy[1] + itemLoca.size[1], 
+                    ];
+                } else {
+                    targetXY = astL6.itemLocas[astL6.n2i[container.children[container.children.length - candidateRoad.avenue]]].xy;
+                }
+            }
+        } else {
+            const itemLoca = astL6.itemLocas[astL6.n2i[candidateRoad.containerId]];
+            const avenue = candidateRoad.avenue;
+            if (avenue === 0) {
+                targetXY = itemLoca.xy;
+            } else if (avenue === 1) {
+                targetXY = [
+                    itemLoca.xy[0] + itemLoca.size[0],
+                    itemLoca.xy[1] + itemLoca.size[1], 
+                ];
+            } else {
+                const _ = avenue;
+                return _;
+            }
+        }
+        const roadXYAxis = getRoadAbsAxis(currentRoad, nodes);
+        const distance = Math.abs(currentXY[roadXYAxis] - targetXY[roadXYAxis]);
+        if (currentXY[roadXYAxis] <= lastXY[roadXYAxis]) {
+            if (lastXY[roadXYAxis] < targetXY[roadXYAxis]) {
+                const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
+                for(let i = 0; i < 2; i++){
+                    if (backCandidateRoads.length < i + 1) {
+                        backCandidateRoads.push([
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        break;
+                    } else if (backCandidateRoads[i][3] > priorityDistance) {
+                        backCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        backCandidateRoads = backCandidateRoads.slice(0, backCandidateNum);
+                        break;
+                    }
+                }
+            } else {
+                const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
+                for(let i = 0; i < 3; i++){
+                    if (frontCandidateRoads.length < i + 1) {
+                        frontCandidateRoads.push([
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        break;
+                    } else if (frontCandidateRoads[i][3] > priorityDistance) {
+                        frontCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        frontCandidateRoads = frontCandidateRoads.slice(0, frontCandidateNum);
+                        break;
+                    }
+                }
+            }
+        } else {
+            if (lastXY[roadXYAxis] > targetXY[roadXYAxis]) {
+                const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
+                for(let i = 0; i < 2; i++){
+                    if (backCandidateRoads.length < i + 1) {
+                        backCandidateRoads.push([
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        break;
+                    } else if (backCandidateRoads[i][3] > priorityDistance) {
+                        backCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        backCandidateRoads = backCandidateRoads.slice(0, backCandidateNum);
+                        break;
+                    }
+                }
+            } else {
+                const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
+                for(let i = 0; i < 3; i++){
+                    if (frontCandidateRoads.length < i + 1) {
+                        frontCandidateRoads.push([
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        break;
+                    } else if (frontCandidateRoads[i][3] > priorityDistance) {
+                        frontCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            currentXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        frontCandidateRoads = frontCandidateRoads.slice(0, frontCandidateNum);
+                        break;
+                    }
+                }
+            }
+        }
+    });
+    let retRoute = null;
+    frontCandidateRoads.forEach((t)=>{
+        const distance = currentDistance + t[2];
+        if (limitDistance == null || distance < limitDistance) {
+            const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], distance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance);
+            if (tmpRoute != null) {
+                retRoute = tmpRoute;
+                limitDistance = tmpDistance;
+            }
+        }
+    });
+    backCandidateRoads.forEach((t)=>{
+        const distance = currentDistance + t[2];
+        if (limitDistance == null || distance < limitDistance) {
+            const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], distance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance);
+            if (tmpRoute != null) {
+                retRoute = tmpRoute;
+                limitDistance = tmpDistance;
+            }
+        }
+    });
+    return [
+        retRoute,
+        limitDistance
+    ];
+};
+const getGateXY1 = (node, direct, astL6)=>{
+    const itemLoca = astL6.itemLocas[astL6.n2i[node.nodeId]];
+    const absDirect = getCompassFull(node.compassSelf)[direct];
+    if (absDirect === 0) {
+        return [
+            itemLoca.xy[0] + itemLoca.size[0],
+            itemLoca.xy[1] + Math.floor(itemLoca.size[1] / 2), 
+        ];
+    } else if (absDirect === 1) {
+        return [
+            itemLoca.xy[0] + Math.floor(itemLoca.size[0] / 2),
+            itemLoca.xy[1] + itemLoca.size[1], 
+        ];
+    } else if (absDirect === 2) {
+        return [
+            itemLoca.xy[0],
+            itemLoca.xy[1] + Math.floor(itemLoca.size[1] / 2), 
+        ];
+    } else if (absDirect === 3) {
+        return [
+            itemLoca.xy[0] + Math.floor(itemLoca.size[0] / 2),
+            itemLoca.xy[1], 
+        ];
+    } else {
+        const _ = absDirect;
+        return _;
+    }
+};
+const getRoad = (fromNode, fromDirect, toNode, nodes)=>{
+    const fromParentsR = [
+        ...fromNode.parents
+    ].reverse();
+    const toParentsR = [
+        ...toNode.parents
+    ].reverse();
+    if (fromNode.parents.includes(toNode.nodeId)) {
+        throw new Error(`[E220506] Direct descendants can not connect.`);
+    }
+    if (toNode.parents.includes(fromNode.nodeId)) {
+        throw new Error(`[E220507] Direct descendants can not connect.`);
+    }
+    let parentIndex = -1;
+    for(let i = 0; i < fromParentsR.length; i++){
+        const toCommonParentIndex = toParentsR.indexOf(fromParentsR[i]);
+        if (toCommonParentIndex !== -1) {
+            parentIndex = i;
+            break;
+        }
+    }
+    if (parentIndex == -1) {
+        throw new Error(`[E220505] asgR1 is invalid.`);
+    }
+    let targetIndex;
+    if (fromDirect === 0 && fromNode.siblings[fromNode.siblings.length - 1] !== fromNode.nodeId) {
+        targetIndex = 0;
+    } else if (fromDirect === 2 && fromNode.siblings[0] !== fromNode.nodeId) {
+        targetIndex = 0;
+    } else {
+        if (fromNode.bnParents[fromDirect] - 1 >= parentIndex) {
+            targetIndex = parentIndex;
+        } else {
+            targetIndex = fromNode.bnParents[fromDirect] - 1;
+        }
+    }
+    const targetNodeId = fromParentsR[targetIndex];
+    if (!targetNodeId == null) {
+        throw new Error(`[E220501] asgR1 is invalid.`);
+    }
+    const targetNode = nodes[targetNodeId];
+    if (!targetNode) {
+        throw new Error(`[E220502] asgR1 is invalid.`);
+    }
+    if (targetNode.type !== 'Group' && targetNode.type !== 'Unit') {
+        throw new Error(`[E220503] asgR1 is invalid.`);
+    }
+    const railDirect = getMappingCompassFull(fromNode.compassSelf, targetNode.compassItems)[fromDirect];
+    const siblingIndex = targetNode.children.indexOf(targetIndex > 0 ? fromParentsR[targetIndex - 1] : fromNode.nodeId);
+    if (railDirect === 0) {
+        return {
+            containerId: targetNodeId,
+            axis: 0,
+            avenue: siblingIndex + 1
+        };
+    } else if (railDirect === 1) {
+        return {
+            containerId: targetNodeId,
+            axis: 1,
+            avenue: 1
+        };
+    } else if (railDirect === 2) {
+        return {
+            containerId: targetNodeId,
+            axis: 0,
+            avenue: siblingIndex
+        };
+    } else if (railDirect === 3) {
+        return {
+            containerId: targetNodeId,
+            axis: 1,
+            avenue: 0
+        };
+    } else {
+        const _ = railDirect;
+        return _;
+    }
+};
+const isRoadReach = (currentRoad, lastNode, lastDirect, nodes)=>{
+    const lastParentsR = [
+        ...lastNode.parents
+    ].reverse();
+    const parentIndex = lastParentsR.indexOf(currentRoad.containerId);
+    if (parentIndex === -1) {
+        return false;
+    }
+    if (lastNode.bnParents[lastDirect] - 1 < parentIndex) {
+        return false;
+    }
+    const roadContainer = nodes[currentRoad.containerId];
+    if (!(roadContainer.type === 'Group' || roadContainer.type === 'Unit')) {
+        throw new Error(`[E220601] road is invalid.`);
+    }
+    const railDirect = getMappingCompassFull(lastNode.compassSelf, roadContainer.compassItems)[lastDirect];
+    if (railDirect === 0) {
+        if (currentRoad.axis === 0) {
+            const siblingIndex = roadContainer.children.indexOf(parentIndex > 0 ? lastParentsR[parentIndex - 1] : lastNode.nodeId);
+            if (siblingIndex + 1 === currentRoad.avenue) {
+                return true;
+            }
+        }
+    } else if (railDirect === 1) {
+        if (currentRoad.axis === 1 && currentRoad.avenue === 1) {
+            return true;
+        }
+    } else if (railDirect === 2) {
+        if (currentRoad.axis === 0) {
+            const siblingIndex = roadContainer.children.indexOf(parentIndex > 0 ? lastParentsR[parentIndex - 1] : lastNode.nodeId);
+            if (siblingIndex === currentRoad.avenue) {
+                return true;
+            }
+        }
+    } else if (railDirect === 3) {
+        if (currentRoad.axis === 1 && currentRoad.avenue === 0) {
+            return true;
+        }
+    }
+    return false;
+};
+const getRoadAbsAxis = (road, nodes)=>{
+    const container = nodes[road.containerId];
+    if (container.type !== 'Group' && container.type !== 'Unit') {
+        throw new Error(`[E220701] asgR1 is invalid.`);
+    }
+    const compass = container.compassItems;
+    return getSameAxisByDirect(compass[road.axis]);
+};
+const getNextAllRoads = (currentRoad, lastNode, nodes)=>{
+    let ret = [];
+    const container = nodes[currentRoad.containerId];
+    if (!(container.type === 'Group' || container.type === 'Unit')) {
+        throw new Error(`[E220801] invalid.`);
+    }
+    const roadAxis = currentRoad.axis;
+    if (roadAxis === 0) {
+        ret.push(getRoadByContainer(container, 1, 0, lastNode, nodes));
+        ret.push(getRoadByContainer(container, 1, 1, lastNode, nodes));
+        if (currentRoad.avenue !== 0) {
+            ret = ret.concat(getNextAllRoadsEachNode(container.children[currentRoad.avenue - 1], container.compassItems, 0, lastNode, nodes));
+        }
+        if (currentRoad.avenue !== container.children.length) {
+            ret = ret.concat(getNextAllRoadsEachNode(container.children[currentRoad.avenue], container.compassItems, 2, lastNode, nodes));
+        }
+    } else if (roadAxis === 1) {
+        const roadAvenue = currentRoad.avenue;
+        for(let i = 0; i < container.siblings.length + 1; i++){
+            ret.push(getRoadByContainer(container, 0, i, lastNode, nodes));
+        }
+        if (roadAvenue === 0) {
+            container.children.forEach((child)=>{
+                ret = ret.concat(getNextAllRoadsEachNode(child, container.compassItems, 3, lastNode, nodes));
+            });
+        } else if (roadAvenue === 1) {
+            container.children.forEach((child)=>{
+                ret = ret.concat(getNextAllRoadsEachNode(child, container.compassItems, 1, lastNode, nodes));
+            });
+        } else {
+            const _ = roadAvenue;
+            return _;
+        }
+    } else {
+        const _ = roadAxis;
+        return _;
+    }
+    return ret;
+};
+const getRoadByContainer = (container, axis, avenue, toNode, nodes)=>{
+    let itemsDirect;
+    if (axis === 0) {
+        if (avenue === 0) {
+            itemsDirect = 2;
+        } else if (avenue === container.children.length) {
+            itemsDirect = 0;
+        } else {
+            return {
+                containerId: container.nodeId,
+                axis: axis,
+                avenue: avenue
+            };
+        }
+    } else if (axis === 1) {
+        if (avenue === 0) {
+            itemsDirect = 3;
+        } else if (avenue === 1) {
+            itemsDirect = 1;
+        } else {
+            throw new Error(`[E220901] invalid.`);
+        }
+    } else {
+        const _ = axis;
+        return _;
+    }
+    const containerParentsR = [
+        ...container.parents
+    ].reverse();
+    const toParentsR = [
+        ...toNode.parents
+    ].reverse();
+    if (container.parents.includes(toNode.nodeId)) {
+        throw new Error(`[E220902] Direct descendants can not connect.`);
+    }
+    if (container.nodeId === 0 || toNode.parents.includes(container.nodeId)) {
+        if (axis === 0) {
+            return {
+                containerId: container.nodeId,
+                axis: 0,
+                avenue: avenue
+            };
+        } else if (axis === 1) {
+            if (avenue === 0 || avenue === 1) {
+                return {
+                    containerId: container.nodeId,
+                    axis: 1,
+                    avenue: avenue
+                };
+            } else {
+                throw new Error(`[E220907] invalid.`);
+            }
+        } else {
+            const _ = axis;
+            return _;
+        }
+    }
+    let parentIndex = -1;
+    for(let i = 0; i < containerParentsR.length; i++){
+        const toCommonParentIndex = toParentsR.indexOf(containerParentsR[i]);
+        if (toCommonParentIndex !== -1) {
+            parentIndex = i;
+            break;
+        }
+    }
+    if (parentIndex == -1) {
+        throw new Error(`[E220903] asgR1 is invalid.`);
+    }
+    const selfDirect = getMappingCompassFull(container.compassItems, container.compassSelf)[itemsDirect];
+    let targetIndex;
+    if (container.bnParents[selfDirect] - 1 >= parentIndex) {
+        targetIndex = parentIndex;
+    } else {
+        targetIndex = container.bnParents[selfDirect] - 1;
+    }
+    const targetNodeId = containerParentsR[targetIndex];
+    if (!targetNodeId == null) {
+        throw new Error(`[E220904] asgR1 is invalid.`);
+    }
+    const targetNode = nodes[targetNodeId];
+    if (!targetNode) {
+        throw new Error(`[E220905] asgR1 is invalid.`);
+    }
+    if (targetNode.type !== 'Group' && targetNode.type !== 'Unit') {
+        throw new Error(`[E220906] asgR1 is invalid.`);
+    }
+    const railDirect = getMappingCompassFull(container.compassSelf, targetNode.compassItems)[selfDirect];
+    const siblingIndex = targetNode.children.indexOf(targetIndex > 0 ? containerParentsR[targetIndex - 1] : container.nodeId);
+    if (railDirect === 0) {
+        return {
+            containerId: targetNodeId,
+            axis: 0,
+            avenue: siblingIndex + 1
+        };
+    } else if (railDirect === 1) {
+        return {
+            containerId: targetNodeId,
+            axis: 1,
+            avenue: 1
+        };
+    } else if (railDirect === 2) {
+        return {
+            containerId: targetNodeId,
+            axis: 0,
+            avenue: siblingIndex
+        };
+    } else if (railDirect === 3) {
+        return {
+            containerId: targetNodeId,
+            axis: 1,
+            avenue: 0
+        };
+    } else {
+        const _ = railDirect;
+        return _;
+    }
+};
+const getNextAllRoadsEachNode = (nodeId, compass, direct, toNode, nodes)=>{
+    let ret = [];
+    if (nodeId === toNode.nodeId) {
+        return ret;
+    }
+    const node = nodes[nodeId];
+    if (node.type === 'Cell') {
+        return ret;
+    }
+    const nodeCompass = node.compassItems;
+    const nodeDirect = getMappingCompassFull(compass, nodeCompass)[direct];
+    if (nodeDirect === 0) {
+        if (node.children.length > 0) {
+            ret = ret.concat(getNextAllRoadsEachNode(node.children[node.children.length - 1], compass, direct, toNode, nodes));
+        }
+    } else if (nodeDirect === 2) {
+        if (node.children.length > 0) {
+            ret = ret.concat(getNextAllRoadsEachNode(node.children[0], compass, direct, toNode, nodes));
+        }
+    } else if (nodeDirect === 1 || nodeDirect === 3) {
+        for(let i = 0; i < node.children.length - 1; i++){
+            ret.push(getRoadByContainer(node, 0, i + 1, toNode, nodes));
+        }
+        node.children.forEach((child)=>{
+            ret = ret.concat(getNextAllRoadsEachNode(child, compass, direct, toNode, nodes));
+        });
+    } else {
+        const _ = nodeDirect;
+        return _;
+    }
+    return ret;
+};
+const parse5 = async (astL2, { pre , post , calc , version  } = {})=>{
+    if (pre) {
+        astL2 = await pre(astL2);
+    }
+    const nodes = astL2.nodes;
+    const links = astL2.links;
+    let linkRoutes;
+    if (calc) {
+        linkRoutes = await calc(nodes, links, astL2);
+    } else if (version === 1) {
+        linkRoutes = await calcRoute(nodes, links);
+    } else {
+        linkRoutes = await calcRoute1(nodes, links, astL2);
+    }
+    let astL3 = {
+        nodes: astL2.nodes,
+        nodeAttrs: astL2.nodeAttrs,
+        links: astL2.links,
+        linkAttrs: astL2.linkAttrs,
+        docAttr: astL2.docAttr,
+        locaAttr: astL2.locaAttr,
+        linkRoutes: linkRoutes
+    };
+    if (post) {
+        astL3 = await post(astL3);
+    }
+    return astL3;
+};
 const parse6 = async (astL6, { pre , post  } = {})=>{
     if (pre) {
         astL6 = await pre(astL6);
@@ -3254,7 +3844,7 @@ const parse6 = async (astL6, { pre , post  } = {})=>{
     }
     return svg;
 };
-const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute1 , calcLoca: calcLoca1  } = {})=>{
+const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute2 , calcLoca: calcLoca1  } = {})=>{
     const astL11 = await parse(fl31, {
         pre: async (fl3)=>{
             if (debug) {
@@ -3274,12 +3864,12 @@ const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute1 , calcLoc
     const svg = await parseJson(astL11, {
         debug: debug,
         textSize: textSize,
-        calcRoute: calcRoute1,
+        calcRoute: calcRoute2,
         calcLoca: calcLoca1
     });
     return svg;
 };
-const parseJson = async (json, { debug , textSize , calcRoute: calcRoute2 , calcLoca: calcLoca2  } = {})=>{
+const parseJson = async (json, { debug , textSize , calcRoute: calcRoute3 , calcLoca: calcLoca2  } = {})=>{
     const astL21 = await parse1(json, {
         textSize: textSize,
         post: async (astL2)=>{
@@ -3290,8 +3880,8 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute2 , calc
             return astL2;
         }
     });
-    const astL31 = await parse2(astL21, {
-        calc: calcRoute2,
+    const astL31 = await parse5(astL21, {
+        calc: calcRoute3,
         post: async (astL3)=>{
             if (debug) {
                 console.log("<astL3>");
@@ -3300,7 +3890,7 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute2 , calc
             return astL3;
         }
     });
-    const astL41 = await parse3(astL31, {
+    const astL41 = await parse2(astL31, {
         post: async (astL4)=>{
             if (debug) {
                 console.log("<astL4>");
@@ -3309,7 +3899,7 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute2 , calc
             return astL4;
         }
     });
-    const astL51 = await parse4(astL41, {
+    const astL51 = await parse3(astL41, {
         calc: calcLoca2,
         post: async (astL5)=>{
             if (debug) {
@@ -3319,7 +3909,7 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute2 , calc
             return astL5;
         }
     });
-    const astL61 = await parse5(astL51, {
+    const astL61 = await parse4(astL51, {
         post: async (astL6)=>{
             if (debug) {
                 console.log("<astL6>");
