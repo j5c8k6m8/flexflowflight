@@ -3618,7 +3618,7 @@ const calcRoute1 = async (nodes, links, astL2)=>{
     return linkRoutes;
 };
 const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
-    if (callNum > 1000) {
+    if (callNum > 100) {
         throw new Error(`[E220201] nest too deep.`);
     }
     callNum++;

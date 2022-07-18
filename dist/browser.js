@@ -3618,7 +3618,7 @@ const calcRoute1 = async (nodes, links, astL2)=>{
     return linkRoutes;
 };
 const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
-    if (callNum > 1000) {
+    if (callNum > 100) {
         throw new Error(`[E220201] nest too deep.`);
     }
     callNum++;
@@ -4163,6 +4163,8 @@ const getNextAllRoadsEachNode = (nodeId, compass, direct, toNode, nodes)=>{
     return ret;
 };
 const parse5 = async (astL2, { pre , post , calc , version  } = {})=>{
+    console.log(999);
+    console.log(version);
     if (pre) {
         astL2 = await pre(astL2);
     }
@@ -4265,7 +4267,7 @@ const parse6 = async (astL6, { pre , post  } = {})=>{
     }
     return svg;
 };
-const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute2 , calcLoca: calcLoca1  } = {})=>{
+const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute2 , calcLoca: calcLoca1 , calcRouteVersion  } = {})=>{
     const astL11 = await parse(fl31, {
         pre: async (fl3)=>{
             if (debug) {
@@ -4286,11 +4288,12 @@ const parse7 = async (fl31, { debug , textSize , calcRoute: calcRoute2 , calcLoc
         debug: debug,
         textSize: textSize,
         calcRoute: calcRoute2,
-        calcLoca: calcLoca1
+        calcLoca: calcLoca1,
+        calcRouteVersion: calcRouteVersion
     });
     return svg;
 };
-const parseJson = async (json, { debug , textSize , calcRoute: calcRoute3 , calcLoca: calcLoca2  } = {})=>{
+const parseJson = async (json, { debug , textSize , calcRoute: calcRoute3 , calcLoca: calcLoca2 , calcRouteVersion  } = {})=>{
     const astL21 = await parse1(json, {
         textSize: textSize,
         post: async (astL2)=>{
@@ -4303,6 +4306,7 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute3 , calc
     });
     const astL31 = await parse5(astL21, {
         calc: calcRoute3,
+        version: calcRouteVersion,
         post: async (astL3)=>{
             if (debug) {
                 console.log("<astL3>");
@@ -4353,7 +4357,8 @@ const parseJson = async (json, { debug , textSize , calcRoute: calcRoute3 , calc
 window.flexflowflight = {
     onload: true,
     debug: false,
-    parse: parse7
+    parse: parse7,
+    calcRouteVersion: undefined
 };
 addEventListener('load', function(_e) {
     if (window.flexflowflight.onload) {
@@ -4374,7 +4379,8 @@ addEventListener('load', function(_e) {
             };
             const svg = await parse7(elem.textContent || '', {
                 textSize: getTextSize,
-                debug: window.flexflowflight.debug
+                debug: window.flexflowflight.debug,
+                calcRouteVersion: window.flexflowflight.calcRouteVersion
             });
             tmpElem?.remove();
             elem.insertAdjacentHTML("afterend", svg);
