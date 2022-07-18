@@ -24,8 +24,8 @@ export const parseGroupAttr = (map: Map<string, string | null>): GroupAttr => {
     if (map.has('disp')) {
         ret.disp = map.get('disp');
     }
-    if (map.has('resource')) {
-        ret.disp = map.get('resource');
+    if (map.has('name')) {
+        ret.name = map.get('name');
     }
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);
@@ -47,8 +47,8 @@ export const parseCellAttr = (map: Map<string, string | null>): CellAttr => {
     if (map.has('disp')) {
         ret.disp = map.get('disp');
     }
-    if (map.has('resource')) {
-        ret.disp = map.get('resource');
+    if (map.has('name')) {
+        ret.name = map.get('name');
     }
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);

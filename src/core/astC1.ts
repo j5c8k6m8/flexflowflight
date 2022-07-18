@@ -1,6 +1,6 @@
 export type Name = string;
 export type Path = string[];
-// AccessName include tagName selecter and resourceName selecter.
+// AccessName include tagName selecter and attrName selecter.
 export type AccessName = string;
 
 const direction = ['main', 'cross', 'main_reverse', 'cross_reverse'] as const;

@@ -43,8 +43,8 @@ const parseGroupAttr = (map)=>{
     if (map.has('disp')) {
         ret.disp = map.get('disp');
     }
-    if (map.has('resource')) {
-        ret.disp = map.get('resource');
+    if (map.has('name')) {
+        ret.name = map.get('name');
     }
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);
@@ -65,8 +65,8 @@ const parseCellAttr = (map)=>{
     if (map.has('disp')) {
         ret.disp = map.get('disp');
     }
-    if (map.has('resource')) {
-        ret.disp = map.get('resource');
+    if (map.has('name')) {
+        ret.name = map.get('name');
     }
     if (map.has('tag')) {
         ret.tag = map.get('tag')?.split(/[\s,]/);
@@ -915,7 +915,7 @@ const parseRefName = (fl3, state, pos)=>{
     const first = fl3[pos.i];
     if (first === '&' || first === '$') {
         nextChar(pos);
-        return first + parseSimpleName(fl3, pos);
+        return first + parseName(fl3, pos);
     } else {
         const absPath = parseAbsolutePath(fl3, state, pos);
         return pathToAccessName(absPath);
@@ -1645,7 +1645,7 @@ const parseRootUnitAttr = (l1, nodeId)=>{
 const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     let direction = null;
     let disp = null;
-    let resource = null;
+    let name = l1.name;
     let tag = [];
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
@@ -1658,8 +1658,8 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
         }
-        if ('resource' in l1.attr && l1.attr.resource) {
-            resource = l1.attr.resource;
+        if ('name' in l1.attr && l1.attr.name) {
+            name = l1.attr.name;
         }
         if ('tag' in l1.attr && l1.attr.tag) {
             tag = l1.attr.tag;
@@ -1683,7 +1683,6 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
         name: l1.name,
         direction: direction,
         disp: disp,
-        resource: resource,
         tag: tag,
         padding: padding,
         border: border,
@@ -1724,7 +1723,7 @@ const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
 };
 const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeFunc)=>{
     let disp = l1.name;
-    let resource = null;
+    let name = l1.name;
     let tag = [];
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
@@ -1734,8 +1733,8 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
         }
-        if ('resource' in l1.attr && l1.attr.resource) {
-            resource = l1.attr.resource;
+        if ('name' in l1.attr && l1.attr.name) {
+            name = l1.attr.name;
         }
         if ('tag' in l1.attr && l1.attr.tag) {
             tag = l1.attr.tag;
@@ -1759,7 +1758,6 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
         type: 'Cell',
         name: l1.name,
         disp: disp,
-        resource: resource,
         tag: tag,
         padding: padding,
         border: border,
@@ -1906,7 +1904,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
             nameMap: nameMap
         }
     ];
-    const resourceMap = new Map();
+    const attrNameMap = new Map();
     const tagMap = new Map();
     while(statePath.length){
         const currentState = statePath[statePath.length - 1];
@@ -1928,7 +1926,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
             const nextL2 = parseGroup1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId, nextL2Attr);
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
-            setResourceMap(resourceMap, nextL2, nextL2Attr);
+            setAttrNameMap(attrNameMap, nextL2, nextL2Attr);
             setTagMap(tagMap, nextL2, nextL2Attr);
             statePath.push({
                 l1: nextL1,
@@ -1958,7 +1956,7 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
             const nextL2 = await parseCell1(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId);
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
-            setResourceMap(resourceMap, nextL2, nextL2Attr);
+            setAttrNameMap(attrNameMap, nextL2, nextL2Attr);
             setTagMap(tagMap, nextL2, nextL2Attr);
             setNameMap(currentState.nameMap, nextL2, nextL2Attr);
         } else {
@@ -1967,8 +1965,8 @@ const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
         }
     }
     astL1.links.forEach((link)=>{
-        const from = getNodes(link.box[0], resourceMap, tagMap, nameMap);
-        const to = getNodes(link.box[1], resourceMap, tagMap, nameMap);
+        const from = getNodes(link.box[0], attrNameMap, tagMap, nameMap);
+        const to = getNodes(link.box[1], attrNameMap, tagMap, nameMap);
         from.forEach((f)=>{
             to.forEach((t)=>{
                 const link2 = {
@@ -2102,11 +2100,11 @@ const parseCell1 = (l1, parent, parents, siblingIndex, parentChildNum, nodeId)=>
         bnParents: edge
     };
 };
-const getNodes = (accessName, resourceMap, tagMap, nameMap)=>{
+const getNodes = (accessName, attrNameMap, tagMap, nameMap)=>{
     if (accessName.length === 0) {
         throw new Error(`[E022101] blank link access id is invalid.`);
     } else if (accessName[0] === '&') {
-        const ret = resourceMap.get(accessName.substring(1));
+        const ret = attrNameMap.get(accessName.substring(1));
         if (ret) {
             return ret;
         } else {
@@ -2159,21 +2157,21 @@ const getLinkId = (idGen)=>{
     idGen.linkId++;
     return ret;
 };
-const setResourceMap = (resourceMap, node, attr)=>{
-    const resource = attr.resource;
-    if (resource) {
-        let tmp = resourceMap.get(resource);
-        if (!tmp) {
-            tmp = [];
-        }
-        tmp.push(node);
+const setAttrNameMap = (attrNameMap, node, attr)=>{
+    const name = attr.name;
+    let tmp = attrNameMap.get(name);
+    if (!tmp) {
+        tmp = [];
+        attrNameMap.set(name, tmp);
     }
+    tmp.push(node);
 };
 const setTagMap = (tagMap, node, attr)=>{
     attr.tag.forEach((t)=>{
         let tmp = tagMap.get(t);
         if (!tmp) {
             tmp = [];
+            tagMap.set(t, tmp);
         }
         tmp.push(node);
     });

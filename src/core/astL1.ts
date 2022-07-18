@@ -58,7 +58,7 @@ export type RootAttr = {
 export type GroupAttr = {
     direction?: null | ContainerDirection;
     disp?: null | string;
-    resource?: null | string;
+    name?: null | string;
     tag?: null | string[];
     alignItems?: null | Align;
     alignSelf?: null | Align;
@@ -78,7 +78,7 @@ export type UnitAttr = {
 };
 export type CellAttr = {
     disp?: null | string;
-    resource?: null | string;
+    name?: null | string;
     tag?: null | string[];
     alignSelf?: null | Align;
     padding?: null | [number | null, number | null, number | null, number | null];

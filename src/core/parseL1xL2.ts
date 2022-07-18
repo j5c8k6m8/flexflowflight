@@ -66,7 +66,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
         parents: [rootL2.nodeId],
         nameMap: nameMap,
     }];
-    const resourceMap: Map<string, Array<GroupL2 | CellL2>> = new Map();
+    const attrNameMap: Map<string, Array<GroupL2 | CellL2>> = new Map();
     const tagMap: Map<string, Array<GroupL2 | CellL2>> = new Map();
     while (statePath.length) {
         const currentState = statePath[statePath.length - 1];
@@ -89,7 +89,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
 
-            setResourceMap(resourceMap, nextL2, nextL2Attr);
+            setAttrNameMap(attrNameMap, nextL2, nextL2Attr);
             setTagMap(tagMap, nextL2, nextL2Attr);
             statePath.push({
                 l1: nextL1,
@@ -120,7 +120,7 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
             const nextL2 = await parseCell(nextL1, currentL2, parents, siblingIndex, currentState.nameMap.childNum, nodeId);
             currentState.l2.children.push(nextL2.nodeId);
             nodes.push(nextL2);
-            setResourceMap(resourceMap, nextL2, nextL2Attr);
+            setAttrNameMap(attrNameMap, nextL2, nextL2Attr);
             setTagMap(tagMap, nextL2, nextL2Attr);
             setNameMap(currentState.nameMap, nextL2, nextL2Attr);
         } else {
@@ -130,8 +130,8 @@ export const parse = async (astL1: AstL1, { pre, post, textSize }: Options = {})
     }
 
     astL1.links.forEach(link => {
-        const from = getNodes(link.box[0], resourceMap, tagMap, nameMap);
-        const to = getNodes(link.box[1], resourceMap, tagMap, nameMap);
+        const from = getNodes(link.box[0], attrNameMap, tagMap, nameMap);
+        const to = getNodes(link.box[1], attrNameMap, tagMap, nameMap);
         from.forEach(f => {
             to.forEach(t => {
                 const link2: LinkL2 = {
@@ -235,12 +235,12 @@ const parseCell = (l1: CellL1, parent: ContainerL2, parents: Array<number>, sibl
     };
 }
 
-const getNodes = (accessName: AccessName, resourceMap: Map<string, Array<GroupL2 | CellL2>>, tagMap: Map<string, Array<GroupL2 | CellL2>>, nameMap: NameMap): Array<GroupL2 | CellL2> => {
+const getNodes = (accessName: AccessName, attrNameMap: Map<string, Array<GroupL2 | CellL2>>, tagMap: Map<string, Array<GroupL2 | CellL2>>, nameMap: NameMap): Array<GroupL2 | CellL2> => {
     // FUNCTION ERROR ID = '21'
     if (accessName.length === 0) {
         throw new Error(`[E022101] blank link access id is invalid.`);
     } else if (accessName[0] === '&') {
-        const ret = resourceMap.get(accessName.substring(1));
+        const ret = attrNameMap.get(accessName.substring(1));
         if (ret) {
             return ret;
         } else {
@@ -292,15 +292,14 @@ const getLinkId = (idGen: IdGen): LinkId => {
     return ret;
 }
 
-const setResourceMap = (resourceMap: Map<string, Array<GroupL2 | CellL2>>, node: GroupL2 | CellL2, attr: GroupAttr | CellAttr): void => {
-    const resource = attr.resource;
-    if (resource) {
-        let tmp: Array<GroupL2 | CellL2> | undefined = resourceMap.get(resource);
-        if (!tmp) {
-            tmp = [];
-        }
-        tmp.push(node);
+const setAttrNameMap = (attrNameMap: Map<string, Array<GroupL2 | CellL2>>, node: GroupL2 | CellL2, attr: GroupAttr | CellAttr): void => {
+    const name = attr.name;
+    let tmp: Array<GroupL2 | CellL2> | undefined = attrNameMap.get(name);
+    if (!tmp) {
+        tmp = [];
+        attrNameMap.set(name, tmp);
     }
+    tmp.push(node);
 }
 
 const setTagMap = (tagMap: Map<string, Array<GroupL2 | CellL2>>, node: GroupL2 | CellL2, attr: GroupAttr | CellAttr): void => {
@@ -308,6 +307,7 @@ const setTagMap = (tagMap: Map<string, Array<GroupL2 | CellL2>>, node: GroupL2 |
         let tmp: Array<GroupL2 | CellL2> | undefined = tagMap.get(t);
         if (!tmp) {
             tmp = [];
+            tagMap.set(t, tmp);
         }
         tmp.push(node);
 

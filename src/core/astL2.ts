@@ -81,7 +81,6 @@ export type GroupAttr = {
     name: Name;
     direction: null | ContainerDirection;
     disp: null | string;
-    resource: null | string;
     tag: string[];
     padding: EdgeNumber;
     border: EdgeNumber;
@@ -105,7 +104,6 @@ export type CellAttr = {
     type: "Cell";
     name: Name;
     disp: null | string;
-    resource: null | string;
     tag: string[];
     padding: EdgeNumber;
     border: EdgeNumber;

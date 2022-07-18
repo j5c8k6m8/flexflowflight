@@ -89,7 +89,7 @@ export const parseRootUnitAttr = (l1: AstL1, nodeId: NodeId): UnitAttrL2 => {
 export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr): GroupAttrL2 => {
     let direction = null;
     let disp = null;
-    let resource = null;
+    let name = l1.name;
     let tag: Array<string> = [];
     let padding = docAttr.group_padding;
     let border = docAttr.group_border;
@@ -102,8 +102,8 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
         }
-        if ('resource' in l1.attr && l1.attr.resource) {
-            resource = l1.attr.resource;
+        if ('name' in l1.attr && l1.attr.name) {
+            name = l1.attr.name;
         }
         if ('tag' in l1.attr && l1.attr.tag) {
             tag = l1.attr.tag;
@@ -127,7 +127,6 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
         name: l1.name,
         direction: direction,
         disp: disp,
-        resource: resource,
         tag: tag,
         padding: padding,
         border: border,
@@ -170,7 +169,7 @@ export const parseUnitAttr = (l1: UnitL1, parentL1: ContainerL1, nodeId: NodeId,
 
 export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: NodeId, docAttr: DocAttr, userDefineTextSizeFunc: TextSizeFunc | undefined): Promise<CellAttrL2> => {
     let disp = l1.name;
-    let resource = null;
+    let name = l1.name;
     let tag: Array<string> = [];
     let padding = docAttr.cell_padding;
     let border = docAttr.cell_border;
@@ -180,8 +179,8 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
         if ('disp' in l1.attr && l1.attr.disp) {
             disp = l1.attr.disp;
         }
-        if ('resource' in l1.attr && l1.attr.resource) {
-            resource = l1.attr.resource;
+        if ('name' in l1.attr && l1.attr.name) {
+            name = l1.attr.name;
         }
         if ('tag' in l1.attr && l1.attr.tag) {
             tag = l1.attr.tag;
@@ -205,7 +204,6 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
         type: 'Cell',
         name: l1.name,
         disp: disp,
-        resource: resource,
         tag: tag,
         padding: padding,
         border: border,

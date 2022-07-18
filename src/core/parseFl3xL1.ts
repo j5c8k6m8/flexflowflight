@@ -488,7 +488,7 @@ const parseRefName = (fl3: string, state: State, pos: Pos): string => {
     const first = fl3[pos.i];
     if (first === '&' || first === '$') {
         nextChar(pos);
-        return first + parseSimpleName(fl3, pos);
+        return first + parseName(fl3, pos);
     } else {
         const absPath = parseAbsolutePath(fl3, state, pos)
         return pathToAccessName(absPath);
