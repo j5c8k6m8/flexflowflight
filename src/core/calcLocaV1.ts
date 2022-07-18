@@ -1,4 +1,4 @@
-import { ItemId, Direct, Size, getReverse, getCompassAxis, getCompassFull, getAnotherAxisByDirect } from "./astC0.ts"
+import { ItemId, Direct, Size, getReverse, getCompassAxis, getCompassFull, getAnotherAxisByDirect, getSameAxisByDirect } from "./astC0.ts"
 import { LocaAttr } from "./astL2.ts"
 import { Item, LinkItem } from "./astL4.ts"
 import { ItemLoca, GateLoca } from "./astL5.ts"
@@ -266,7 +266,7 @@ const getItemEdgeInfo = (itemId: ItemId, items: Item[], itemLocas: ItemLoca[], l
         const edgeLength = itemLoca.size[absoluteAxis];
         return {
             absoluteAxis: absoluteAxis,
-            startCood: item.margin[d] + Math.floor((edgeLength - allGateLen - item.margin[d] - item.margin[getReverse(d)]) / 2),
+            startCood: item.margin[getSameAxisByDirect(d)] + Math.floor((edgeLength - allGateLen - item.margin[d] - item.margin[getReverse(d)]) / 2),
             currentGate: 0,
         }
     };

@@ -213,11 +213,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
 const getGateXY = (itemId: ItemId, direct: Direct, gateCoord: number, items: Item[], itemLocas: ItemLoca[], nodeAttrs: NodeAttr[], i2n: Array<ItemId | null>, docAttr: DocAttr): XY => {
     // FUNCTION ERROR ID = '02'
     const item = items[itemId];
-    const parentItem = items[item.parents[item.parents.length - 1]];
-    if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
-        throw new Error(`[E060201] invalid unreachable code.`);
-    }
-    const compass = getCompassFull(parentItem.compassItems);
+    const compass = getCompassFull(item.compassSelf);
     direct = compass[direct];
     const itemLoca = itemLocas[itemId];
     const itemType = item.type;
@@ -234,23 +230,23 @@ const getGateXY = (itemId: ItemId, direct: Direct, gateCoord: number, items: Ite
     }
     if (direct === 0) {
         return [
-            itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[direct],
+            itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[2],
             itemLoca.xy[1] + gateCoord,
         ]
     } else if (direct === 1) {
         return [
             itemLoca.xy[0] + gateCoord,
-            itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[direct],
+            itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[3],
         ]
     } else if (direct === 2) {
         return [
-            itemLoca.xy[0] + nodeAttr.margin[direct],
+            itemLoca.xy[0] + nodeAttr.margin[0],
             itemLoca.xy[1] + gateCoord,
         ]
     } else if (direct === 3) {
         return [
             itemLoca.xy[0] + gateCoord,
-            itemLoca.xy[1] + nodeAttr.margin[direct],
+            itemLoca.xy[1] + nodeAttr.margin[1],
         ]
     } else {
         const _: never = direct;

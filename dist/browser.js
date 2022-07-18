@@ -1680,7 +1680,7 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
     return {
         nodeId: nodeId,
         type: 'Group',
-        name: l1.name,
+        name: name,
         direction: direction,
         disp: disp,
         tag: tag,
@@ -1756,7 +1756,7 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
     return {
         nodeId: nodeId,
         type: 'Cell',
-        name: l1.name,
+        name: name,
         disp: disp,
         tag: tag,
         padding: padding,
@@ -3294,7 +3294,7 @@ const getItemEdgeInfo = (itemId, items, itemLocas, locaAttr)=>{
         const edgeLength = itemLoca.size[absoluteAxis];
         return {
             absoluteAxis: absoluteAxis,
-            startCood: item.margin[d] + Math.floor((edgeLength - allGateLen - item.margin[d] - item.margin[getReverse(d)]) / 2),
+            startCood: item.margin[getSameAxisByDirect(d)] + Math.floor((edgeLength - allGateLen - item.margin[d] - item.margin[getReverse(d)]) / 2),
             currentGate: 0
         };
     };
@@ -3533,11 +3533,7 @@ const parse4 = async (astL5, { pre , post  } = {})=>{
 };
 const getGateXY = (itemId, direct, gateCoord, items, itemLocas, nodeAttrs, i2n, docAttr)=>{
     const item = items[itemId];
-    const parentItem = items[item.parents[item.parents.length - 1]];
-    if (!(parentItem.type === 'Group' || parentItem.type === 'Unit')) {
-        throw new Error(`[E060201] invalid unreachable code.`);
-    }
-    const compass = getCompassFull(parentItem.compassItems);
+    const compass = getCompassFull(item.compassSelf);
     direct = compass[direct];
     const itemLoca = itemLocas[itemId];
     const itemType = item.type;
@@ -3554,23 +3550,23 @@ const getGateXY = (itemId, direct, gateCoord, items, itemLocas, nodeAttrs, i2n, 
     }
     if (direct === 0) {
         return [
-            itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[direct],
+            itemLoca.xy[0] + itemLoca.size[0] - nodeAttr.margin[2],
             itemLoca.xy[1] + gateCoord, 
         ];
     } else if (direct === 1) {
         return [
             itemLoca.xy[0] + gateCoord,
-            itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[direct], 
+            itemLoca.xy[1] + itemLoca.size[1] - nodeAttr.margin[3], 
         ];
     } else if (direct === 2) {
         return [
-            itemLoca.xy[0] + nodeAttr.margin[direct],
+            itemLoca.xy[0] + nodeAttr.margin[0],
             itemLoca.xy[1] + gateCoord, 
         ];
     } else if (direct === 3) {
         return [
             itemLoca.xy[0] + gateCoord,
-            itemLoca.xy[1] + nodeAttr.margin[direct], 
+            itemLoca.xy[1] + nodeAttr.margin[1], 
         ];
     } else {
         const _ = direct;
@@ -3654,8 +3650,8 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
         }
         return notFindFlg;
     });
-    const frontCandidateNum = 3;
-    const backCandidateNum = 2;
+    const frontCandidateNum = 10;
+    const backCandidateNum = 5;
     let frontCandidateRoads = [];
     let backCandidateRoads = [];
     candidateRoads.forEach((candidateRoad)=>{
@@ -3706,7 +3702,7 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
         if (currentXY[roadXYAxis] <= lastXY[roadXYAxis]) {
             if (lastXY[roadXYAxis] < targetXY[roadXYAxis]) {
                 const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
-                for(let i = 0; i < 2; i++){
+                for(let i = 0; i < 5; i++){
                     if (backCandidateRoads.length < i + 1) {
                         backCandidateRoads.push([
                             candidateRoad,
@@ -3728,7 +3724,7 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
                 }
             } else {
                 const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
-                for(let i = 0; i < 3; i++){
+                for(let i = 0; i < 10; i++){
                     if (frontCandidateRoads.length < i + 1) {
                         frontCandidateRoads.push([
                             candidateRoad,
@@ -3752,7 +3748,7 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
         } else {
             if (lastXY[roadXYAxis] > targetXY[roadXYAxis]) {
                 const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
-                for(let i = 0; i < 2; i++){
+                for(let i = 0; i < 5; i++){
                     if (backCandidateRoads.length < i + 1) {
                         backCandidateRoads.push([
                             candidateRoad,
@@ -3774,7 +3770,7 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
                 }
             } else {
                 const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
-                for(let i = 0; i < 3; i++){
+                for(let i = 0; i < 10; i++){
                     if (frontCandidateRoads.length < i + 1) {
                         frontCandidateRoads.push([
                             candidateRoad,
@@ -3996,7 +3992,7 @@ const getNextAllRoads = (currentRoad, lastNode, nodes)=>{
         }
     } else if (roadAxis === 1) {
         const roadAvenue = currentRoad.avenue;
-        for(let i = 0; i < container.siblings.length + 1; i++){
+        for(let i = 0; i < container.children.length + 1; i++){
             ret.push(getRoadByContainer(container, 0, i, lastNode, nodes));
         }
         if (roadAvenue === 0) {

@@ -91,8 +91,8 @@ const getRoutes = (currentRoad: Road, currentXY: XY, currentDistance: number, la
         return notFindFlg;
     });
 
-    const frontCandidateNum = 3;
-    const backCandidateNum = 2;
+    const frontCandidateNum = 10;
+    const backCandidateNum = 5;
     let frontCandidateRoads: Array<[Road, XY, number, number]> = [];
     let backCandidateRoads: Array<[Road, XY, number, number]> = [];
 
@@ -403,7 +403,7 @@ const getNextAllRoads = (currentRoad: Road, lastNode: Node, nodes: Node[]): Road
         }
     } else if (roadAxis === 1) {
         const roadAvenue = currentRoad.avenue;
-        for (let i = 0; i < container.siblings.length + 1; i++) {
+        for (let i = 0; i < container.children.length + 1; i++) {
             ret.push(getRoadByContainer(container, 0, i, lastNode, nodes));
         }
         if (roadAvenue === 0) {
