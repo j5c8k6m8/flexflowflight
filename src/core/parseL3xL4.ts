@@ -249,6 +249,7 @@ const setNodeMap = (
                 mainItems: mainItems,
                 crossItems: crossItems,
                 space: nodeAttr.space,
+                margin: nodeAttr.margin,
                 align: nodeAttr.align,
             }
         } else if (nodeType === "Unit") {
@@ -407,6 +408,7 @@ const setNodeMap = (
             siblings: [],  // set after
             links: node.links,
             size: nodeAttr.size,
+            margin: nodeAttr.margin,
             align: nodeAttr.align,
         }
         items.push(nodeItem);

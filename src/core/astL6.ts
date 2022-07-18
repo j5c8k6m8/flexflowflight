@@ -23,13 +23,21 @@ export type ItemLoca = {
 export type GroupDisp = {
     xy: XY;
     size: Size;
-    text: null | string;
+    text: null | {
+        disp: string,
+        xy: XY,
+        size: Size,
+    };
 }
 
 export type CellDisp = {
     xy: XY,
     size: Size,
-    text: null | string;
+    text: null | {
+        disp: string,
+        xy: XY,
+        size: Size,
+    };
 }
 
 export type LinkDisp = {

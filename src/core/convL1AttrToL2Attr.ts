@@ -80,8 +80,8 @@ export const parseRootUnitAttr = (l1: AstL1, nodeId: NodeId): UnitAttrL2 => {
         type: 'Unit',
         name: '',
         direction: direction,
-        margin: [0, 0, 0, 0],
-        space: [0, 0, 0, 0],
+        margin: [8, 12, 8, 12],
+        space: [8, 12, 8, 12],
         align: 'start',
     };
 }
@@ -109,13 +109,13 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
             tag = l1.attr.tag;
         }
         if ('padding' in l1.attr && l1.attr.padding) {
-            padding = l1.attr.padding;
+            padding = getEdgeNumberMarge(padding, l1.attr.padding);
         }
         if ('border' in l1.attr && l1.attr.border) {
-            border = l1.attr.border;
+            border = getEdgeNumberMarge(border, l1.attr.border);
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align = l1.attr.alignSelf;
@@ -151,7 +151,7 @@ export const parseUnitAttr = (l1: UnitL1, parentL1: ContainerL1, nodeId: NodeId,
             direction = l1.attr.direction;
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align = l1.attr.alignSelf;
@@ -187,13 +187,13 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
             tag = l1.attr.tag;
         }
         if ('padding' in l1.attr && l1.attr.padding) {
-            padding = l1.attr.padding;
+            padding = getEdgeNumberMarge(padding, l1.attr.padding);
         }
         if ('border' in l1.attr && l1.attr.border) {
-            border = l1.attr.border;
+            border = getEdgeNumberMarge(border, l1.attr.border);
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align = l1.attr.alignSelf;
@@ -286,4 +286,21 @@ export const parseLaneAttr = (l1: AstL1): LaneAttrL2 => {
         laneMin: laneMin,
         gate_gap: gate_gap,
     };
+}
+
+const getEdgeNumberMarge = (base: EdgeNumber, target: [number | null, number | null, number | null, number | null]): EdgeNumber => {
+    const ret: EdgeNumber = [base[0], base[1], base[2], base[3]];
+    if (target[0] != null) {
+        ret[0] = target[0];
+    }
+    if (target[1] != null) {
+        ret[1] = target[1];
+    }
+    if (target[2] != null) {
+        ret[2] = target[2];
+    }
+    if (target[3] != null) {
+        ret[3] = target[3];
+    }
+    return ret;
 }

@@ -62,9 +62,9 @@ export type GroupAttr = {
     tag?: null | string[];
     alignItems?: null | Align;
     alignSelf?: null | Align;
-    padding?: null | EdgeNumber;  // TODO
-    border?: null | EdgeNumber;  // TODO
-    margin?: null | EdgeNumber;  // TODO
+    padding?: null | [number | null, number | null, number | null, number | null];
+    border?: null | [number | null, number | null, number | null, number | null];
+    margin?: null | [number | null, number | null, number | null, number | null];
     class?: null | string;  // TODO
     style?: null | string;  // TODO
 };
@@ -72,7 +72,7 @@ export type UnitAttr = {
     direction?: null | ContainerDirection;
     alignItems?: null | Align;
     alignSelf?: null | Align;
-    margin?: null | EdgeNumber;  // TODO
+    margin?: null | [number | null, number | null, number | null, number | null];
     class?: null | string;  // TODO
     style?: null | string;  // TODO
 };
@@ -81,9 +81,9 @@ export type CellAttr = {
     resource?: null | string;
     tag?: null | string[];
     alignSelf?: null | Align;
-    padding?: null | EdgeNumber;  // TODO
-    border?: null | EdgeNumber;  // TODO
-    margin?: null | EdgeNumber;  // TODO
+    padding?: null | [number | null, number | null, number | null, number | null];
+    border?: null | [number | null, number | null, number | null, number | null];
+    margin?: null | [number | null, number | null, number | null, number | null];
     width?: null | number;  // TODO
     height?: null | number;  // TODO
     class?: null | string;  // TODO

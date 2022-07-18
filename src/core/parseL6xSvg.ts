@@ -16,13 +16,13 @@ export const parse = async (astL6: AstL6, { pre, post, }: Options = {}): Promise
     astL6.groupDisps.forEach(groupDisp => {
         sb.push(`<rect x="${groupDisp.xy[0]}" y="${groupDisp.xy[1]}" width="${groupDisp.size[0]}" height="${groupDisp.size[1]}" fill="none" stroke="black" class="fl3-group"></rect>`);
         if (groupDisp.text != null) {
-            sb.push(`<text x="${groupDisp.xy[0] + Math.floor(groupDisp.size[0] / 2)}" y="${groupDisp.xy[1]}" text-anchor="middle" dominant-baseline="middle" stroke="black">${groupDisp.text}</text>`);
+            sb.push(`<text x="${groupDisp.text.xy[0] + Math.floor(groupDisp.text.size[0] / 2)}" y="${groupDisp.text.xy[1]}" text-anchor="middle" dominant-baseline="middle" stroke="black">${groupDisp.text.disp}</text>`);
         }
     });
     astL6.cellDisps.forEach(cellDisp => {
         sb.push(`<rect x="${cellDisp.xy[0]}" y="${cellDisp.xy[1]}" width="${cellDisp.size[0]}" height="${cellDisp.size[1]}" fill="none" stroke="black" class="fl3-cell"></rect>`);
         if (cellDisp.text != null) {
-            sb.push(`<text x="${cellDisp.xy[0] + Math.floor(cellDisp.size[0] / 2)}" y="${cellDisp.xy[1] + Math.floor(cellDisp.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text}</text>`);
+            sb.push(`<text x="${cellDisp.text.xy[0] + Math.floor(cellDisp.text.size[0] / 2)}" y="${cellDisp.text.xy[1] + Math.floor(cellDisp.text.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text.disp}</text>`);
         }
     });
     const laneWidth = astL6.locaAttr.laneWidth.map(x => Math.floor(x * 0.6));

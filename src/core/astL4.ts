@@ -22,6 +22,7 @@ export type GroupItem = {
     mainItems: ItemId[];
     crossItems: [ItemId[], ItemId[]];
     space: EdgeNumber;
+    margin: EdgeNumber;
     align: Align;
 };
 
@@ -46,6 +47,7 @@ export type CellItem = {
     siblings: ItemId[];
     links: [[LinkId[], LinkId[], LinkId[], LinkId[]], [LinkId[], LinkId[], LinkId[], LinkId[]]];
     size: Size;
+    margin: EdgeNumber;
     align: Align;
 };
 

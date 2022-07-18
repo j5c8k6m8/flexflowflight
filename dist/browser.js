@@ -32,6 +32,7 @@ const parseUnitAttr = (map)=>{
     if (map.has('align_self')) {
         ret.alignSelf = getAlign('align_self', map);
     }
+    setMargin(ret, map);
     return ret;
 };
 const parseGroupAttr = (map)=>{
@@ -54,6 +55,9 @@ const parseGroupAttr = (map)=>{
     if (map.has('align_self')) {
         ret.alignSelf = getAlign('align_self', map);
     }
+    setMargin(ret, map);
+    setPadding(ret, map);
+    setBorder(ret, map);
     return ret;
 };
 const parseCellAttr = (map)=>{
@@ -70,6 +74,9 @@ const parseCellAttr = (map)=>{
     if (map.has('align_self')) {
         ret.alignSelf = getAlign('align_self', map);
     }
+    setMargin(ret, map);
+    setPadding(ret, map);
+    setBorder(ret, map);
     return ret;
 };
 const parseLinkAttr = (map)=>{
@@ -108,6 +115,382 @@ const getAlign = (key, map)=>{
         return t;
     } else {
         return null;
+    }
+};
+const getNumber = (key, map)=>{
+    const t = map.get(key);
+    const n = Number(t);
+    if (n != null) {
+        return n;
+    } else {
+        return null;
+    }
+};
+const setMargin = (ret, map)=>{
+    if (map.has('m')) {
+        const m = getNumber('m', map);
+        ret.margin = [
+            m,
+            m,
+            m,
+            m
+        ];
+    }
+    if (map.has('margin')) {
+        const m = getNumber('margin', map);
+        ret.margin = [
+            m,
+            m,
+            m,
+            m
+        ];
+    }
+    if (map.has('mx')) {
+        const mx = getNumber('mx', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                mx,
+                null,
+                mx,
+                null
+            ];
+        } else {
+            ret.margin[0] = mx;
+            ret.margin[2] = mx;
+        }
+    }
+    if (map.has('my')) {
+        const my = getNumber('my', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                my,
+                null,
+                my
+            ];
+        } else {
+            ret.margin[1] = my;
+            ret.margin[3] = my;
+        }
+    }
+    if (map.has('mt')) {
+        const mt = getNumber('mt', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                mt,
+                null,
+                null
+            ];
+        } else {
+            ret.margin[1] = mt;
+        }
+    }
+    if (map.has('margin_top')) {
+        const mt = getNumber('margin_top', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                mt,
+                null,
+                null
+            ];
+        } else {
+            ret.margin[1] = mt;
+        }
+    }
+    if (map.has('mr')) {
+        const mr = getNumber('mr', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                null,
+                mr,
+                null
+            ];
+        } else {
+            ret.margin[2] = mr;
+        }
+    }
+    if (map.has('margin_right')) {
+        const mr = getNumber('margin_right', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                null,
+                mr,
+                null
+            ];
+        } else {
+            ret.margin[2] = mr;
+        }
+    }
+    if (map.has('mb')) {
+        const mb = getNumber('mb', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                null,
+                null,
+                mb
+            ];
+        } else {
+            ret.margin[3] = mb;
+        }
+    }
+    if (map.has('margin_bottom')) {
+        const mb = getNumber('margin_bottom', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                null,
+                null,
+                null,
+                mb
+            ];
+        } else {
+            ret.margin[3] = mb;
+        }
+    }
+    if (map.has('ml')) {
+        const ml = getNumber('ml', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                ml,
+                null,
+                null,
+                null
+            ];
+        } else {
+            ret.margin[0] = ml;
+        }
+    }
+    if (map.has('margin_left')) {
+        const ml = getNumber('margin_left', map);
+        if (ret.margin == null) {
+            ret.margin = [
+                ml,
+                null,
+                null,
+                null
+            ];
+        } else {
+            ret.margin[0] = ml;
+        }
+    }
+};
+const setPadding = (ret, map)=>{
+    if (map.has('p')) {
+        const p = getNumber('p', map);
+        ret.padding = [
+            p,
+            p,
+            p,
+            p
+        ];
+    }
+    if (map.has('padding')) {
+        const p = getNumber('padding', map);
+        ret.padding = [
+            p,
+            p,
+            p,
+            p
+        ];
+    }
+    if (map.has('px')) {
+        const px = getNumber('px', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                px,
+                null,
+                px,
+                null
+            ];
+        } else {
+            ret.padding[0] = px;
+            ret.padding[2] = px;
+        }
+    }
+    if (map.has('py')) {
+        const py = getNumber('py', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                py,
+                null,
+                py
+            ];
+        } else {
+            ret.padding[1] = py;
+            ret.padding[3] = py;
+        }
+    }
+    if (map.has('pt')) {
+        const pt = getNumber('pt', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                pt,
+                null,
+                null
+            ];
+        } else {
+            ret.padding[1] = pt;
+        }
+    }
+    if (map.has('padding_top')) {
+        const pt = getNumber('padding_top', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                pt,
+                null,
+                null
+            ];
+        } else {
+            ret.padding[1] = pt;
+        }
+    }
+    if (map.has('pr')) {
+        const pr = getNumber('pr', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                null,
+                pr,
+                null
+            ];
+        } else {
+            ret.padding[2] = pr;
+        }
+    }
+    if (map.has('padding_right')) {
+        const pr = getNumber('padding_right', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                null,
+                pr,
+                null
+            ];
+        } else {
+            ret.padding[2] = pr;
+        }
+    }
+    if (map.has('pb')) {
+        const pb = getNumber('pb', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                null,
+                null,
+                pb
+            ];
+        } else {
+            ret.padding[3] = pb;
+        }
+    }
+    if (map.has('padding_bottom')) {
+        const pb = getNumber('padding_bottom', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                null,
+                null,
+                null,
+                pb
+            ];
+        } else {
+            ret.padding[3] = pb;
+        }
+    }
+    if (map.has('pl')) {
+        const pl = getNumber('pl', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                pl,
+                null,
+                null,
+                null
+            ];
+        } else {
+            ret.padding[0] = pl;
+        }
+    }
+    if (map.has('padding_left')) {
+        const pl = getNumber('padding_left', map);
+        if (ret.padding == null) {
+            ret.padding = [
+                pl,
+                null,
+                null,
+                null
+            ];
+        } else {
+            ret.padding[0] = pl;
+        }
+    }
+};
+const setBorder = (ret, map)=>{
+    if (map.has('border')) {
+        const border = getNumber('border', map);
+        ret.border = [
+            border,
+            border,
+            border,
+            border
+        ];
+    }
+    if (map.has('border_top')) {
+        const border_top = getNumber('border_top', map);
+        if (ret.border == null) {
+            ret.border = [
+                null,
+                border_top,
+                null,
+                null
+            ];
+        } else {
+            ret.border[1] = border_top;
+        }
+    }
+    if (map.has('border_right')) {
+        const border_right = getNumber('border_right', map);
+        if (ret.border == null) {
+            ret.border = [
+                null,
+                null,
+                border_right,
+                null
+            ];
+        } else {
+            ret.border[2] = border_right;
+        }
+    }
+    if (map.has('border_bottom')) {
+        const border_bottom = getNumber('border_bottom', map);
+        if (ret.border == null) {
+            ret.border = [
+                null,
+                null,
+                null,
+                border_bottom
+            ];
+        } else {
+            ret.border[3] = border_bottom;
+        }
+    }
+    if (map.has('border_left')) {
+        const border_left = getNumber('border_left', map);
+        if (ret.border == null) {
+            ret.border = [
+                border_left,
+                null,
+                null,
+                null
+            ];
+        } else {
+            ret.border[0] = border_left;
+        }
     }
 };
 const nameSymbol = Symbol();
@@ -1245,16 +1628,16 @@ const parseRootUnitAttr = (l1, nodeId)=>{
         name: '',
         direction: direction,
         margin: [
-            0,
-            0,
-            0,
-            0
+            8,
+            12,
+            8,
+            12
         ],
         space: [
-            0,
-            0,
-            0,
-            0
+            8,
+            12,
+            8,
+            12
         ],
         align: 'start'
     };
@@ -1282,13 +1665,13 @@ const parseGroupAttr1 = (l1, parentL1, nodeId, docAttr)=>{
             tag = l1.attr.tag;
         }
         if ('padding' in l1.attr && l1.attr.padding) {
-            padding = l1.attr.padding;
+            padding = getEdgeNumberMarge(padding, l1.attr.padding);
         }
         if ('border' in l1.attr && l1.attr.border) {
-            border = l1.attr.border;
+            border = getEdgeNumberMarge(border, l1.attr.border);
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align1 = l1.attr.alignSelf;
@@ -1323,7 +1706,7 @@ const parseUnitAttr1 = (l1, parentL1, nodeId, docAttr)=>{
             direction = l1.attr.direction;
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align2 = l1.attr.alignSelf;
@@ -1358,13 +1741,13 @@ const parseCellAttr1 = async (l1, parentL1, nodeId, docAttr, userDefineTextSizeF
             tag = l1.attr.tag;
         }
         if ('padding' in l1.attr && l1.attr.padding) {
-            padding = l1.attr.padding;
+            padding = getEdgeNumberMarge(padding, l1.attr.padding);
         }
         if ('border' in l1.attr && l1.attr.border) {
-            border = l1.attr.border;
+            border = getEdgeNumberMarge(border, l1.attr.border);
         }
         if ('margin' in l1.attr && l1.attr.margin) {
-            margin = l1.attr.margin;
+            margin = getEdgeNumberMarge(margin, l1.attr.margin);
         }
         if ('alignSelf' in l1.attr && l1.attr.alignSelf) {
             align3 = l1.attr.alignSelf;
@@ -1466,6 +1849,27 @@ const parseLaneAttr = (l1)=>{
         laneMin: laneMin,
         gate_gap: gate_gap
     };
+};
+const getEdgeNumberMarge = (base, target)=>{
+    const ret = [
+        base[0],
+        base[1],
+        base[2],
+        base[3]
+    ];
+    if (target[0] != null) {
+        ret[0] = target[0];
+    }
+    if (target[1] != null) {
+        ret[1] = target[1];
+    }
+    if (target[2] != null) {
+        ret[2] = target[2];
+    }
+    if (target[3] != null) {
+        ret[3] = target[3];
+    }
+    return ret;
 };
 const parse1 = async (astL1, { pre , post , textSize  } = {})=>{
     if (pre) {
@@ -2456,6 +2860,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 mainItems: mainItems,
                 crossItems: crossItems,
                 space: nodeAttr.space,
+                margin: nodeAttr.margin,
                 align: nodeAttr.align
             };
         } else if (nodeType === "Unit") {
@@ -2602,6 +3007,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             siblings: [],
             links: node.links,
             size: nodeAttr.size,
+            margin: nodeAttr.margin,
             align: nodeAttr.align
         };
         items.push(nodeItem);
@@ -2890,7 +3296,7 @@ const getItemEdgeInfo = (itemId, items, itemLocas, locaAttr)=>{
         const edgeLength = itemLoca.size[absoluteAxis];
         return {
             absoluteAxis: absoluteAxis,
-            startCood: Math.floor((edgeLength - allGateLen) / 2),
+            startCood: item.margin[d] + Math.floor((edgeLength - allGateLen - item.margin[d] - item.margin[getReverse(d)]) / 2),
             currentGate: 0
         };
     };
@@ -3001,7 +3407,17 @@ const parse4 = async (astL5, { pre , post  } = {})=>{
                     itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]),
                     itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]), 
                 ],
-                text: groupAttr.disp
+                text: groupAttr.disp == null ? null : {
+                    disp: groupAttr.disp,
+                    xy: [
+                        itemLoca.xy[0] + groupAttr.margin[0] + groupAttr.padding[0],
+                        itemLoca.xy[1] + groupAttr.margin[1] + groupAttr.padding[1], 
+                    ],
+                    size: [
+                        itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]) - (groupAttr.padding[0] + groupAttr.padding[2]),
+                        itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]) - (groupAttr.padding[1] + groupAttr.padding[3]), 
+                    ]
+                }
             });
         } else if (itemType === 'Cell') {
             const nodeId = astL5.i2n[item.itemId];
@@ -3028,7 +3444,17 @@ const parse4 = async (astL5, { pre , post  } = {})=>{
                     itemLoca.size[0] - (cellAttr.margin[0] + cellAttr.margin[2]),
                     itemLoca.size[1] - (cellAttr.margin[1] + cellAttr.margin[3]), 
                 ],
-                text: cellAttr.disp
+                text: cellAttr.disp == null ? null : {
+                    disp: cellAttr.disp,
+                    xy: [
+                        itemLoca.xy[0] + cellAttr.margin[0] + cellAttr.padding[0],
+                        itemLoca.xy[1] + cellAttr.margin[1] + cellAttr.padding[1], 
+                    ],
+                    size: [
+                        itemLoca.size[0] - (cellAttr.margin[0] + cellAttr.margin[2]) - (cellAttr.padding[0] + cellAttr.padding[2]),
+                        itemLoca.size[1] - (cellAttr.margin[1] + cellAttr.margin[3]) - (cellAttr.padding[1] + cellAttr.padding[3]), 
+                    ]
+                }
             });
         } else if (itemType === 'Road' || itemType === 'Unit') {} else {
             const _ = itemType;
@@ -3779,13 +4205,13 @@ const parse6 = async (astL6, { pre , post  } = {})=>{
     astL6.groupDisps.forEach((groupDisp)=>{
         sb.push(`<rect x="${groupDisp.xy[0]}" y="${groupDisp.xy[1]}" width="${groupDisp.size[0]}" height="${groupDisp.size[1]}" fill="none" stroke="black" class="fl3-group"></rect>`);
         if (groupDisp.text != null) {
-            sb.push(`<text x="${groupDisp.xy[0] + Math.floor(groupDisp.size[0] / 2)}" y="${groupDisp.xy[1]}" text-anchor="middle" dominant-baseline="middle" stroke="black">${groupDisp.text}</text>`);
+            sb.push(`<text x="${groupDisp.text.xy[0] + Math.floor(groupDisp.text.size[0] / 2)}" y="${groupDisp.text.xy[1]}" text-anchor="middle" dominant-baseline="middle" stroke="black">${groupDisp.text.disp}</text>`);
         }
     });
     astL6.cellDisps.forEach((cellDisp)=>{
         sb.push(`<rect x="${cellDisp.xy[0]}" y="${cellDisp.xy[1]}" width="${cellDisp.size[0]}" height="${cellDisp.size[1]}" fill="none" stroke="black" class="fl3-cell"></rect>`);
         if (cellDisp.text != null) {
-            sb.push(`<text x="${cellDisp.xy[0] + Math.floor(cellDisp.size[0] / 2)}" y="${cellDisp.xy[1] + Math.floor(cellDisp.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text}</text>`);
+            sb.push(`<text x="${cellDisp.text.xy[0] + Math.floor(cellDisp.text.size[0] / 2)}" y="${cellDisp.text.xy[1] + Math.floor(cellDisp.text.size[1] / 2)}" text-anchor="middle" dominant-baseline="middle" stroke="black">${cellDisp.text.disp}</text>`);
         }
     });
     const laneWidth = astL6.locaAttr.laneWidth.map((x)=>Math.floor(x * 0.6)

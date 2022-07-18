@@ -68,6 +68,7 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
                 throw new Error(`[E060103] invalid unreachable code.`);
             }
             const itemLoca = itemLocas[item.itemId];
+
             groupDisps.push({
                 xy: [
                     itemLoca.xy[0] + groupAttr.margin[0],
@@ -77,7 +78,17 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
                     itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]),
                     itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]),
                 ],
-                text: groupAttr.disp,
+                text: groupAttr.disp == null ? null : {
+                    disp: groupAttr.disp,
+                    xy: [
+                        itemLoca.xy[0] + groupAttr.margin[0] + groupAttr.padding[0],
+                        itemLoca.xy[1] + groupAttr.margin[1] + groupAttr.padding[1],
+                    ],
+                    size: [
+                        itemLoca.size[0] - (groupAttr.margin[0] + groupAttr.margin[2]) - (groupAttr.padding[0] + groupAttr.padding[2]),
+                        itemLoca.size[1] - (groupAttr.margin[1] + groupAttr.margin[3]) - (groupAttr.padding[1] + groupAttr.padding[3]),
+                    ],
+                },
             });
         } else if (itemType === 'Cell') {
             const nodeId = astL5.i2n[item.itemId];
@@ -104,7 +115,17 @@ export const parse = async (astL5: AstL5, { pre, post, }: Options = {}): Promise
                     itemLoca.size[0] - (cellAttr.margin[0] + cellAttr.margin[2]),
                     itemLoca.size[1] - (cellAttr.margin[1] + cellAttr.margin[3]),
                 ],
-                text: cellAttr.disp,
+                text: cellAttr.disp == null ? null : {
+                    disp: cellAttr.disp,
+                    xy: [
+                        itemLoca.xy[0] + cellAttr.margin[0] + cellAttr.padding[0],
+                        itemLoca.xy[1] + cellAttr.margin[1] + cellAttr.padding[1],
+                    ],
+                    size: [
+                        itemLoca.size[0] - (cellAttr.margin[0] + cellAttr.margin[2]) - (cellAttr.padding[0] + cellAttr.padding[2]),
+                        itemLoca.size[1] - (cellAttr.margin[1] + cellAttr.margin[3]) - (cellAttr.padding[1] + cellAttr.padding[3]),
+                    ],
+                },
             });
 
         } else if (itemType === 'Road' || itemType === 'Unit') {
