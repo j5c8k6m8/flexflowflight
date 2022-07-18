@@ -2499,6 +2499,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             const load = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 1,
                 avenue: 0,
                 lane: i,
@@ -2524,6 +2525,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
                 const load = {
                     itemId: itemId,
                     type: "Road",
+                    compassSelf: node.compassItems,
                     axis: 0,
                     avenue: i1,
                     lane: j,
@@ -2551,6 +2553,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             const load = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 0,
                 avenue: node.children.length,
                 lane: j,
@@ -2573,6 +2576,7 @@ const setNodeMap = (nodeId, items, nodes, nodeAttrs, allLinks, linkRoutes, laneA
             const load = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 1,
                 avenue: 1,
                 lane: i2,
@@ -3194,7 +3198,6 @@ const calcRoute1 = async (nodes, links, astL2)=>{
     return linkRoutes;
 };
 const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
-    console.log(callNum, currentRoad, currentRoute);
     if (callNum > 1000) {
         throw new Error(`[E220201] nest too deep.`);
     }
@@ -3240,8 +3243,6 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
             }
             if (container.compassItems[0] < 2) {
                 if (candidateRoad.avenue < container.children.length) {
-                    console.log(candidateRoad.avenue);
-                    console.log(container.children);
                     targetXY = astL6.itemLocas[astL6.n2i[container.children[candidateRoad.avenue]]].xy;
                 } else {
                     const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];

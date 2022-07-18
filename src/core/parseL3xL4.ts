@@ -291,6 +291,7 @@ const setNodeMap = (
             const load: RoadCross = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 1,
                 avenue: 0,
                 lane: i,
@@ -315,6 +316,7 @@ const setNodeMap = (
                 const load: RoadMain = {
                     itemId: itemId,
                     type: "Road",
+                    compassSelf: node.compassItems,
                     axis: 0,
                     avenue: i,
                     lane: j,
@@ -357,6 +359,7 @@ const setNodeMap = (
             const load: RoadMain = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 0,
                 avenue: node.children.length,
                 lane: j,
@@ -378,6 +381,7 @@ const setNodeMap = (
             const load: RoadCross = {
                 itemId: itemId,
                 type: "Road",
+                compassSelf: node.compassItems,
                 axis: 1,
                 avenue: 1,
                 lane: i,

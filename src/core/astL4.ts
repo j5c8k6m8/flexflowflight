@@ -54,6 +54,7 @@ export type Road = RoadMain | RoadCross;
 export type RoadMain = {
     itemId: ItemId;
     type: "Road";
+    compassSelf: Compass;
     axis: 0;
     // axisIndex is between 0 to children.length.
     avenue: number;
@@ -67,6 +68,7 @@ export type RoadMain = {
 export type RoadCross = {
     itemId: ItemId;
     type: "Road";
+    compassSelf: Compass;
     axis: 1;
     avenue: CrossAvenue;
     lane: LaneNo;

@@ -209,3 +209,14 @@ export const getAnotherAxisByDirect = (d: Direct): Axis => {
         return _;
     }
 }
+
+export const getSignedDistance = (d: Direct, distance: number): number => {
+    if (d === 0 || d === 1) {
+        return distance;
+    } else if (d === 2 || d === 3) {
+        return - distance;
+    } else {
+        const _: never = d;
+        return _;
+    }
+}
