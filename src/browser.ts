@@ -10,6 +10,7 @@ interface Window {
         onload: boolean;
         debug: boolean;
         parse: Parse;
+        calcRouteVersion: number | undefined,
     }
 }
 declare let window: Window
@@ -17,6 +18,7 @@ window.flexflowflight = {
     onload: true,
     debug: false,
     parse: parse,
+    calcRouteVersion: undefined,
 };
 addEventListener(
     'load',
@@ -35,7 +37,7 @@ addEventListener(
                     const domRect = text.getBoundingClientRect()
                     return [domRect.width, domRect.height];
                 }
-                const svg = await parse(elem.textContent || '', { textSize: getTextSize, debug: window.flexflowflight.debug });
+                const svg = await parse(elem.textContent || '', { textSize: getTextSize, debug: window.flexflowflight.debug, calcRouteVersion: window.flexflowflight.calcRouteVersion });
                 tmpElem?.remove()
                 elem.insertAdjacentHTML("afterend", svg);
             });

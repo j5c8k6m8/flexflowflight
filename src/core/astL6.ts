@@ -2,8 +2,8 @@ import { ItemId, Size, Coordinate, XY } from "./astC0.ts"
 import { AstL4 } from "./astL4.ts"
 
 export type AstL6 = AstL4 & {
-    itemLocas: ItemLoca[],
     canvas: Canvas,
+    itemLocas: ItemLoca[],
     groupDisps: GroupDisp[],
     cellDisps: CellDisp[],
     linkDisps: LinkDisp[],

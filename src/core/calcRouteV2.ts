@@ -62,7 +62,7 @@ export const calcRoute = async (nodes: Node[], links: Link[], astL2: AstL2): Pro
 const getRoutes = (currentRoad: Road, currentXY: XY, currentDistance: number, lastNode: Node, lastDirect: Direct, lastXY: XY, currentRoute: Road[], nodes: Node[], astL6: AstL6, callNum: number, limitDistance: number | null): [Road[] | null, number | null] => {
     // FUNCTION ERROR ID = '02'
     // Avoid infinite loops.
-    if (callNum > 1000) {
+    if (callNum > 100) {
         throw new Error(`[E220201] nest too deep.`);
     }
     callNum++;

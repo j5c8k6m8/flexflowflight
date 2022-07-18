@@ -18,10 +18,11 @@ type Options = {
     textSize?: (name: Name, cellL1: CellL1, docAttr: DocAttr) => Promise<[number, number]>,
     calcRoute?: (nodes: Node[], links: Link[], astL2: AstL2) => Promise<LinkRoute[]>,
     calcLoca?: (items: Item[], linkItems: LinkItem[], locaAttr: LocaAttr, astL4: AstL4) => Promise<[ItemLoca[], GateLoca[]]>,
+    calcRouteVersion?: number,
 }
 export type Parse = (fl3: string, option: Options) => Promise<string>;
 
-export const parse = async (fl3: string, { debug, textSize, calcRoute, calcLoca }: Options = {}): Promise<string> => {
+export const parse = async (fl3: string, { debug, textSize, calcRoute, calcLoca, calcRouteVersion }: Options = {}): Promise<string> => {
     const astL1 = await parseFl3xL1(fl3, {
         // deno-lint-ignore require-await
         pre: async (fl3: string): Promise<string> => {
@@ -40,12 +41,12 @@ export const parse = async (fl3: string, { debug, textSize, calcRoute, calcLoca 
             return astL1;
         },
     });
-    const svg = await parseJson(astL1, {debug: debug, textSize: textSize, calcRoute: calcRoute, calcLoca: calcLoca});
+    const svg = await parseJson(astL1, {debug: debug, textSize: textSize, calcRoute: calcRoute, calcLoca: calcLoca, calcRouteVersion: calcRouteVersion});
     return svg;
 }
 
 
-export const parseJson = async (json: AstL1, { debug, textSize, calcRoute, calcLoca }: Options = {}): Promise<string> => {
+export const parseJson = async (json: AstL1, { debug, textSize, calcRoute, calcLoca, calcRouteVersion }: Options = {}): Promise<string> => {
     const astL2 = await parseL1xL2(json, {
         textSize: textSize,
         // deno-lint-ignore require-await
@@ -59,6 +60,7 @@ export const parseJson = async (json: AstL1, { debug, textSize, calcRoute, calcL
     });
     const astL3 = await parseL2xL3(astL2, {
         calc: calcRoute,
+        version: calcRouteVersion,
         // deno-lint-ignore require-await
         post: async (astL3: AstL3): Promise<AstL3> => {
             if (debug) {
