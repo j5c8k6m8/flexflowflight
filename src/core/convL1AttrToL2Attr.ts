@@ -124,7 +124,7 @@ export const parseGroupAttr = (l1: GroupL1, parentL1: ContainerL1, nodeId: NodeI
     return {
         nodeId: nodeId,
         type: 'Group',
-        name: l1.name,
+        name: name,
         direction: direction,
         disp: disp,
         tag: tag,
@@ -202,7 +202,7 @@ export const parseCellAttr = async (l1: CellL1, parentL1: ContainerL1, nodeId: N
     return {
         nodeId: nodeId,
         type: 'Cell',
-        name: l1.name,
+        name: name,
         disp: disp,
         tag: tag,
         padding: padding,
