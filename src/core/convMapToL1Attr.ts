@@ -59,7 +59,19 @@ export const parseCellAttr = (map: Map<string, string | null>): CellAttr => {
     setMargin(ret, map);
     setPadding(ret, map);
     setBorder(ret, map);
-    return ret;
+    if (map.has('w')) {
+       ret.width = getNumber('w', map);
+    }
+    if (map.has('width')) {
+        ret.width = getNumber('width', map);
+     }
+     if (map.has('h')) {
+        ret.height = getNumber('h', map);
+     }
+     if (map.has('height')) {
+         ret.height = getNumber('height', map);
+      }
+      return ret;
 }
 
 export const parseLinkAttr = (map: Map<string, string | null>): LinkAttr => {

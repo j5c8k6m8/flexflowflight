@@ -84,8 +84,8 @@ export type CellAttr = {
     padding?: null | [number | null, number | null, number | null, number | null];
     border?: null | [number | null, number | null, number | null, number | null];
     margin?: null | [number | null, number | null, number | null, number | null];
-    width?: null | number;  // TODO
-    height?: null | number;  // TODO
+    width?: null | number;
+    height?: null | number;
     class?: null | string;  // TODO
     style?: null | string;  // TODO
 };

@@ -77,6 +77,18 @@ const parseCellAttr = (map)=>{
     setMargin(ret, map);
     setPadding(ret, map);
     setBorder(ret, map);
+    if (map.has('w')) {
+        ret.width = getNumber('w', map);
+    }
+    if (map.has('width')) {
+        ret.width = getNumber('width', map);
+    }
+    if (map.has('h')) {
+        ret.height = getNumber('h', map);
+    }
+    if (map.has('height')) {
+        ret.height = getNumber('height', map);
+    }
     return ret;
 };
 const parseLinkAttr = (map)=>{
@@ -530,7 +542,7 @@ const parse = async (fl3, { pre , post  } = {})=>{
     return ast;
 };
 const parseGlobal = (fl3, ast, state, pos, nameMap)=>{
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     while(fl3.length > pos.i){
         const cur = fl3[pos.i];
         switch(cur){
@@ -604,28 +616,29 @@ const parseUnit = (fl3, ast, state, pos, nameMap)=>{
         nextChar(pos);
         parseGroup(fl3, ast, state, pos, nameMap);
     } else {
-        skipCommentAndBlank(fl3, pos);
+        skipCommentAndBlank(fl3, pos, false);
         const path = parseAbsolutePath(fl3, state, pos);
         let closed = false;
         const attrMap = new Map();
+        let blankFlg = skipCommentAndBlank(fl3, pos, false);
         while(fl3.length > pos.i){
             const cur = fl3[pos.i];
             if (cur === "]") {
                 nextChar(pos);
                 closed = true;
                 break;
-            } else if (!/\s/.test(cur)) {
+            } else if (!blankFlg) {
                 throw new Error(`[E010202] need blank between name and attr at ${L}:${C}`);
             } else {
-                skipCommentAndBlank(fl3, pos);
                 const [k, v] = parseAttr(fl3, pos);
                 attrMap.set(k, v);
+                blankFlg = skipCommentAndBlank(fl3, pos, false);
             }
         }
         if (!closed) {
             throw new Error(`[E010203] missing close Unit at ${L}:${C}`);
         }
-        const newLineFlg = skipCommentAndBlank(fl3, pos);
+        const newLineFlg = skipCommentAndBlank(fl3, pos, true);
         addUnit(nameMap, path, attrMap, pos);
         if (state.fpath && state.slink) {
             addLink(ast, pathToAccessName(state.fpath), pathToAccessName(path), state.slink.direction, state.slink.attr);
@@ -647,10 +660,11 @@ const parseUnit = (fl3, ast, state, pos, nameMap)=>{
 const parseGroup = (fl3, ast, state, pos, nameMap)=>{
     const L = pos.l;
     const C = pos.c;
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     const path = parseAbsolutePath(fl3, state, pos);
     let closed = false;
     const attrMap = new Map();
+    let blankFlg = skipCommentAndBlank(fl3, pos, false);
     while(fl3.length > pos.i){
         const cur = fl3[pos.i];
         if (cur === "]") {
@@ -666,18 +680,18 @@ const parseGroup = (fl3, ast, state, pos, nameMap)=>{
             } else {
                 throw new Error(`[E010302] missing close Group at ${L}:${C}`);
             }
-        } else if (!/\s/.test(cur)) {
+        } else if (!blankFlg) {
             throw new Error(`[E010303] need blank between name and attr at ${L}:${C}`);
         } else {
-            skipCommentAndBlank(fl3, pos);
             const [k, v] = parseAttr(fl3, pos);
             attrMap.set(k, v);
+            blankFlg = skipCommentAndBlank(fl3, pos, false);
         }
     }
     if (!closed) {
         throw new Error(`[E010304] missing close Unit at ${L}:${C}`);
     }
-    const newLineFlg = skipCommentAndBlank(fl3, pos);
+    const newLineFlg = skipCommentAndBlank(fl3, pos, true);
     addGroup(nameMap, path, attrMap, pos);
     if (state.fpath && state.slink) {
         addLink(ast, pathToAccessName(state.fpath), pathToAccessName(path), state.slink.direction, state.slink.attr);
@@ -698,28 +712,29 @@ const parseGroup = (fl3, ast, state, pos, nameMap)=>{
 const parseCell = (fl3, ast, state, pos, nameMap)=>{
     const L = pos.l;
     const C = pos.c;
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     const path = parseRelativePath(fl3, state, pos);
     let closed = false;
     const attrMap = new Map();
+    let blankFlg = skipCommentAndBlank(fl3, pos, false);
     while(fl3.length > pos.i){
         const cur = fl3[pos.i];
         if (cur === ")") {
             nextChar(pos);
             closed = true;
             break;
-        } else if (!/\s/.test(cur)) {
+        } else if (!blankFlg) {
             throw new Error(`[E010401] need blank between name and attr at ${L}:${C}`);
         } else {
-            skipCommentAndBlank(fl3, pos);
             const [k, v] = parseAttr(fl3, pos);
             attrMap.set(k, v);
+            blankFlg = skipCommentAndBlank(fl3, pos, false);
         }
     }
     if (!closed) {
         throw new Error(`[E010402] missing close Unit at ${L}:${C}`);
     }
-    const newLineFlg = skipCommentAndBlank(fl3, pos);
+    const newLineFlg = skipCommentAndBlank(fl3, pos, true);
     addCell(nameMap, path, attrMap, pos);
     if (state.fpath && state.slink) {
         addLink(ast, pathToAccessName(state.fpath), pathToAccessName(path), state.slink.direction, state.slink.attr);
@@ -740,32 +755,33 @@ const parseLink = (fl3, ast, state, pos)=>{
     }
     const L = pos.l;
     const C = pos.c;
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     const fref = parseRefName(fl3, state, pos);
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     const direction = parseLinkType(fl3, pos);
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     const tref = parseRefName(fl3, state, pos);
     let closed = false;
     const attrMap = new Map();
+    let blankFlg = skipCommentAndBlank(fl3, pos, false);
     while(fl3.length > pos.i){
         const cur = fl3[pos.i];
         if (cur === "}") {
             nextChar(pos);
             closed = true;
             break;
-        } else if (!/\s/.test(cur)) {
+        } else if (!blankFlg) {
             throw new Error(`[E010502] need blank between name and attr at ${L}:${C}`);
         } else {
-            skipCommentAndBlank(fl3, pos);
             const [k, v] = parseAttr(fl3, pos);
             attrMap.set(k, v);
+            blankFlg = skipCommentAndBlank(fl3, pos, false);
         }
     }
     if (!closed) {
         throw new Error(`[E010503] missing close Unit at ${L}:${C}`);
     }
-    const newLineFlg = skipCommentAndBlank(fl3, pos);
+    const newLineFlg = skipCommentAndBlank(fl3, pos, true);
     addLink(ast, fref, tref, direction, attrMap);
     if (newLineFlg) {
         state.first = true;
@@ -779,7 +795,7 @@ const parseRoot = (fl3, ast, state, pos)=>{
     if (state.slink) {
         throw new Error(`[E010601] invalid char at ${pos.l}:${pos.c}`);
     }
-    skipCommentAndBlank(fl3, pos);
+    skipCommentAndBlank(fl3, pos, false);
     if (fl3.length <= pos.i) {
         const cur = fl3[pos.i];
         if (/\w/.test(cur)) {
@@ -794,7 +810,7 @@ const parseRoot = (fl3, ast, state, pos)=>{
                 if (!/\s/.test(cur)) {
                     throw new Error(`[E010602] need blank between name and attr at ${pos.l}:${pos.c}`);
                 }
-                const newLineFlg = skipCommentAndBlank(fl3, pos);
+                const newLineFlg = skipCommentAndBlank(fl3, pos, true);
                 if (newLineFlg) {
                     break;
                 }
@@ -819,7 +835,7 @@ const parseRootAttr = (fl3, ast, pos)=>{
         if (!/\s/.test(cur)) {
             throw new Error(`[E010702] need blank between name and attr at ${pos.l}:${pos.c}`);
         }
-        const newLineFlg = skipCommentAndBlank(fl3, pos);
+        const newLineFlg = skipCommentAndBlank(fl3, pos, true);
         if (newLineFlg) {
             break;
         }
@@ -1063,7 +1079,8 @@ const parseAttr = (fl3, pos)=>{
         ];
     }
 };
-const skipCommentAndBlank = (fl3, pos)=>{
+const skipCommentAndBlank = (fl3, pos, returnNewLineFlg)=>{
+    const beforePos = pos.i;
     let newLineFlg = false;
     while(fl3.length > pos.i){
         const cur1 = fl3[pos.i];
@@ -1090,7 +1107,7 @@ const skipCommentAndBlank = (fl3, pos)=>{
             }
         }
     }
-    return newLineFlg;
+    return returnNewLineFlg ? newLineFlg : pos.i !== beforePos;
 };
 const addUnit = (nameMap, path, attrMap, pos)=>{
     let currentMap = nameMap;
