@@ -3604,9 +3604,10 @@ const calcRoute1 = async (nodes, links, astL2)=>{
             throw new Error(`[E220102] asgR1 is invalid.`);
         }
         const currentRoad = getRoad(fromNode, fromDirect, toNode, nodes);
-        const fromXY = getGateXY1(fromNode, fromDirect, dummyAstL6);
-        const toXY = getGateXY1(toNode, toDirect, dummyAstL6);
-        const [route, _distance] = getRoutes1(currentRoad, fromXY, 0, toNode, toDirect, toXY, [], nodes, dummyAstL6, 1, null);
+        const fromXY = getRoadXY(getGateXY1(fromNode, fromDirect, dummyAstL6), currentRoad, nodes, dummyAstL6.itemLocas, dummyAstL6.n2i);
+        const toDummyRoad = getRoad(toNode, toDirect, fromNode, nodes);
+        const toXY = getRoadXY(getGateXY1(toNode, toDirect, dummyAstL6), toDummyRoad, nodes, dummyAstL6.itemLocas, dummyAstL6.n2i);
+        const [route, _distance] = getRoutes1(currentRoad, fromXY, toNode, toDirect, toXY, [], nodes, dummyAstL6, 1, null);
         if (route == null) {
             throw new Error(`[E220104] invalid.`);
         }
@@ -3617,15 +3618,16 @@ const calcRoute1 = async (nodes, links, astL2)=>{
     });
     return linkRoutes;
 };
-const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
+const getRoutes1 = (currentRoad, currentXY, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance)=>{
     if (callNum > 100) {
         throw new Error(`[E220201] nest too deep.`);
     }
     callNum++;
     currentRoute = currentRoute.concat(currentRoad);
     if (isRoadReach(currentRoad, lastNode, lastDirect, nodes)) {
-        const roadAxis = getRoadAbsAxis(currentRoad, nodes);
-        const retDistance = currentDistance + Math.abs(currentXY[roadAxis] - lastXY[roadAxis]);
+        const currentRoadCompass = getRoadCompass(currentRoad, nodes);
+        const currentRoadAbsAxis = getAnotherAxisByDirect(currentRoadCompass[currentRoad.axis]);
+        const retDistance = Math.abs(currentXY[currentRoadAbsAxis] - lastXY[currentRoadAbsAxis]);
         if (limitDistance == null || retDistance < limitDistance) {
             return [
                 currentRoute,
@@ -3637,6 +3639,14 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
                 null
             ];
         }
+    }
+    const minDistance = Math.abs(currentXY[0] - lastXY[0]) + Math.abs(currentXY[1] - lastXY[1]);
+    const extraLimitDistance = limitDistance == null ? null : limitDistance - minDistance;
+    if (extraLimitDistance != null && extraLimitDistance < 0) {
+        return [
+            null,
+            null
+        ];
     }
     const allCandidateRoads = getNextAllRoads(currentRoad, lastNode, nodes);
     const candidateRoads = allCandidateRoads.filter((c)=>{
@@ -3650,174 +3660,224 @@ const getRoutes1 = (currentRoad, currentXY, currentDistance, lastNode, lastDirec
         }
         return notFindFlg;
     });
-    const frontCandidateNum = 10;
-    const backCandidateNum = 5;
-    let frontCandidateRoads = [];
-    let backCandidateRoads = [];
+    const innerCandidateRoads = [];
+    const outerCandidateRoads = [];
     candidateRoads.forEach((candidateRoad)=>{
-        let targetXY;
-        if (candidateRoad.axis === 0) {
-            const container = nodes[candidateRoad.containerId];
-            if (!(container.type === 'Group' || container.type === 'Unit')) {
-                throw new Error(`[E220203] invalid.`);
-            }
-            if (container.compassItems[0] < 2) {
-                if (candidateRoad.avenue < container.children.length) {
-                    targetXY = astL6.itemLocas[astL6.n2i[container.children[candidateRoad.avenue]]].xy;
-                } else {
-                    const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];
-                    targetXY = [
-                        itemLoca.xy[0] + itemLoca.size[0],
-                        itemLoca.xy[1] + itemLoca.size[1], 
-                    ];
-                }
-            } else {
-                if (candidateRoad.avenue === 0) {
-                    const itemLoca = astL6.itemLocas[astL6.n2i[container.children[container.children.length - 1]]];
-                    targetXY = [
-                        itemLoca.xy[0] + itemLoca.size[0],
-                        itemLoca.xy[1] + itemLoca.size[1], 
-                    ];
-                } else {
-                    targetXY = astL6.itemLocas[astL6.n2i[container.children[container.children.length - candidateRoad.avenue]]].xy;
-                }
-            }
-        } else {
-            const itemLoca = astL6.itemLocas[astL6.n2i[candidateRoad.containerId]];
-            const avenue = candidateRoad.avenue;
-            if (avenue === 0) {
-                targetXY = itemLoca.xy;
-            } else if (avenue === 1) {
-                targetXY = [
-                    itemLoca.xy[0] + itemLoca.size[0],
-                    itemLoca.xy[1] + itemLoca.size[1], 
-                ];
-            } else {
-                const _ = avenue;
-                return _;
-            }
-        }
+        const targetXY = getRoadXY(currentXY, candidateRoad, nodes, astL6.itemLocas, astL6.n2i);
         const roadXYAxis = getRoadAbsAxis(currentRoad, nodes);
         const distance = Math.abs(currentXY[roadXYAxis] - targetXY[roadXYAxis]);
         if (currentXY[roadXYAxis] <= lastXY[roadXYAxis]) {
             if (lastXY[roadXYAxis] < targetXY[roadXYAxis]) {
                 const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
-                for(let i = 0; i < 5; i++){
-                    if (backCandidateRoads.length < i + 1) {
-                        backCandidateRoads.push([
+                if (extraLimitDistance != null && priorityDistance * 2 > extraLimitDistance) {
+                    return;
+                }
+                let findFlg = false;
+                for(let i = 0; i < outerCandidateRoads.length; i++){
+                    if (outerCandidateRoads[i][3] > priorityDistance) {
+                        outerCandidateRoads.splice(i, 0, [
                             candidateRoad,
-                            currentXY,
+                            targetXY,
                             distance,
                             priorityDistance
                         ]);
-                        break;
-                    } else if (backCandidateRoads[i][3] > priorityDistance) {
-                        backCandidateRoads.splice(i, 0, [
-                            candidateRoad,
-                            currentXY,
-                            distance,
-                            priorityDistance
-                        ]);
-                        backCandidateRoads = backCandidateRoads.slice(0, backCandidateNum);
+                        findFlg = true;
                         break;
                     }
                 }
-            } else {
-                const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
-                for(let i = 0; i < 10; i++){
-                    if (frontCandidateRoads.length < i + 1) {
-                        frontCandidateRoads.push([
+                if (!findFlg) {
+                    outerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
+                }
+            } else if (currentXY[roadXYAxis] > targetXY[roadXYAxis]) {
+                const priorityDistance = currentXY[roadXYAxis] - targetXY[roadXYAxis];
+                if (extraLimitDistance != null && priorityDistance * 2 > extraLimitDistance) {
+                    return;
+                }
+                let findFlg = false;
+                for(let i = 0; i < outerCandidateRoads.length; i++){
+                    if (outerCandidateRoads[i][3] > priorityDistance) {
+                        outerCandidateRoads.splice(i, 0, [
                             candidateRoad,
-                            currentXY,
+                            targetXY,
                             distance,
                             priorityDistance
                         ]);
-                        break;
-                    } else if (frontCandidateRoads[i][3] > priorityDistance) {
-                        frontCandidateRoads.splice(i, 0, [
-                            candidateRoad,
-                            currentXY,
-                            distance,
-                            priorityDistance
-                        ]);
-                        frontCandidateRoads = frontCandidateRoads.slice(0, frontCandidateNum);
+                        findFlg = true;
                         break;
                     }
+                }
+                if (!findFlg) {
+                    outerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
+                }
+            } else {
+                const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
+                let findFlg = false;
+                for(let i = 0; i < innerCandidateRoads.length; i++){
+                    if (innerCandidateRoads[i][3] > priorityDistance) {
+                        innerCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            targetXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        findFlg = true;
+                        break;
+                    }
+                }
+                if (!findFlg) {
+                    innerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
                 }
             }
         } else {
             if (lastXY[roadXYAxis] > targetXY[roadXYAxis]) {
-                const priorityDistance = lastXY[roadXYAxis] - targetXY[roadXYAxis];
-                for(let i = 0; i < 5; i++){
-                    if (backCandidateRoads.length < i + 1) {
-                        backCandidateRoads.push([
+                const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
+                if (extraLimitDistance != null && priorityDistance * 2 > extraLimitDistance) {
+                    return;
+                }
+                let findFlg = false;
+                for(let i = 0; i < outerCandidateRoads.length; i++){
+                    if (outerCandidateRoads[i][3] > priorityDistance) {
+                        outerCandidateRoads.splice(i, 0, [
                             candidateRoad,
-                            currentXY,
+                            targetXY,
                             distance,
                             priorityDistance
                         ]);
-                        break;
-                    } else if (backCandidateRoads[i][3] > priorityDistance) {
-                        backCandidateRoads.splice(i, 0, [
-                            candidateRoad,
-                            currentXY,
-                            distance,
-                            priorityDistance
-                        ]);
-                        backCandidateRoads = backCandidateRoads.slice(0, backCandidateNum);
+                        findFlg = true;
                         break;
                     }
+                }
+                if (!findFlg) {
+                    outerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
+                }
+            } else if (currentXY[roadXYAxis] < targetXY[roadXYAxis]) {
+                const priorityDistance = targetXY[roadXYAxis] - currentXY[roadXYAxis];
+                if (extraLimitDistance != null && priorityDistance * 2 > extraLimitDistance) {
+                    return;
+                }
+                let findFlg = false;
+                for(let i = 0; i < outerCandidateRoads.length; i++){
+                    if (outerCandidateRoads[i][3] > priorityDistance) {
+                        outerCandidateRoads.splice(i, 0, [
+                            candidateRoad,
+                            targetXY,
+                            distance,
+                            priorityDistance
+                        ]);
+                        findFlg = true;
+                        break;
+                    }
+                }
+                if (!findFlg) {
+                    outerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
                 }
             } else {
                 const priorityDistance = targetXY[roadXYAxis] - lastXY[roadXYAxis];
-                for(let i = 0; i < 10; i++){
-                    if (frontCandidateRoads.length < i + 1) {
-                        frontCandidateRoads.push([
+                let findFlg = false;
+                for(let i = 0; i < innerCandidateRoads.length; i++){
+                    if (innerCandidateRoads[i][3] > priorityDistance) {
+                        innerCandidateRoads.splice(i, 0, [
                             candidateRoad,
-                            currentXY,
+                            targetXY,
                             distance,
                             priorityDistance
                         ]);
-                        break;
-                    } else if (frontCandidateRoads[i][3] > priorityDistance) {
-                        frontCandidateRoads.splice(i, 0, [
-                            candidateRoad,
-                            currentXY,
-                            distance,
-                            priorityDistance
-                        ]);
-                        frontCandidateRoads = frontCandidateRoads.slice(0, frontCandidateNum);
+                        findFlg = true;
                         break;
                     }
+                }
+                if (!findFlg) {
+                    innerCandidateRoads.push([
+                        candidateRoad,
+                        targetXY,
+                        distance,
+                        priorityDistance
+                    ]);
                 }
             }
         }
     });
-    let retRoute = null;
-    frontCandidateRoads.forEach((t)=>{
-        const distance = currentDistance + t[2];
-        if (limitDistance == null || distance < limitDistance) {
-            const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], distance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance);
-            if (tmpRoute != null) {
-                retRoute = tmpRoute;
-                limitDistance = tmpDistance;
-            }
-        }
-    });
-    backCandidateRoads.forEach((t)=>{
-        const distance = currentDistance + t[2];
-        if (limitDistance == null || distance < limitDistance) {
-            const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], distance, lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, limitDistance);
-            if (tmpRoute != null) {
-                retRoute = tmpRoute;
-                limitDistance = tmpDistance;
-            }
-        }
-    });
-    return [
-        retRoute,
-        limitDistance
+    let extraDistance = null;
+    let ret = [
+        null,
+        null
     ];
+    for(let i2 = 0; i2 < innerCandidateRoads.length; i2++){
+        const t = innerCandidateRoads[i2];
+        let argLimitDistance = null;
+        if (extraDistance != null) {
+            argLimitDistance = minDistance + extraDistance - t[2];
+        } else if (limitDistance != null) {
+            argLimitDistance = limitDistance - t[2];
+        }
+        const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, argLimitDistance);
+        if (tmpRoute != null && tmpDistance != null) {
+            const distance = tmpDistance + t[2];
+            const tmpExtraDistance = distance - minDistance;
+            if (tmpExtraDistance === 0) {
+                return [
+                    tmpRoute,
+                    distance
+                ];
+            } else if (extraDistance == null || extraDistance > tmpExtraDistance) {
+                extraDistance = tmpExtraDistance;
+                ret = [
+                    tmpRoute,
+                    distance
+                ];
+            }
+        }
+    }
+    for(let i1 = 0; i1 < outerCandidateRoads.length; i1++){
+        const t = outerCandidateRoads[i1];
+        if (extraDistance != null && extraDistance < t[3] * 2) {
+            break;
+        }
+        let argLimitDistance = null;
+        if (extraDistance != null) {
+            argLimitDistance = minDistance + extraDistance - t[2];
+        } else if (limitDistance != null) {
+            argLimitDistance = limitDistance - t[2];
+        }
+        const [tmpRoute, tmpDistance] = getRoutes1(t[0], t[1], lastNode, lastDirect, lastXY, currentRoute, nodes, astL6, callNum, argLimitDistance);
+        if (tmpRoute != null && tmpDistance != null) {
+            const distance = tmpDistance + t[2];
+            const tmpExtraDistance = distance - minDistance;
+            if (extraDistance == null || extraDistance > tmpExtraDistance) {
+                extraDistance = tmpExtraDistance;
+                ret = [
+                    tmpRoute,
+                    distance
+                ];
+            }
+        }
+    }
+    return ret;
 };
 const getGateXY1 = (node, direct, astL6)=>{
     const itemLoca = astL6.itemLocas[astL6.n2i[node.nodeId]];
@@ -3966,13 +4026,20 @@ const isRoadReach = (currentRoad, lastNode, lastDirect, nodes)=>{
     }
     return false;
 };
+const getRoadCompass = (road, nodes)=>{
+    const container = nodes[road.containerId];
+    if (container.type !== 'Group' && container.type !== 'Unit') {
+        throw new Error(`[E220701] asgR1 is invalid.`);
+    }
+    return container.compassItems;
+};
 const getRoadAbsAxis = (road, nodes)=>{
     const container = nodes[road.containerId];
     if (container.type !== 'Group' && container.type !== 'Unit') {
         throw new Error(`[E220701] asgR1 is invalid.`);
     }
     const compass = container.compassItems;
-    return getSameAxisByDirect(compass[road.axis]);
+    return getAnotherAxisByDirect(compass[road.axis]);
 };
 const getNextAllRoads = (currentRoad, lastNode, nodes)=>{
     let ret = [];
@@ -4162,9 +4229,47 @@ const getNextAllRoadsEachNode = (nodeId, compass, direct, toNode, nodes)=>{
     }
     return ret;
 };
+const getRoadXY = (xy, road, nodes, itemLocas, n2i)=>{
+    const ret = [
+        xy[0],
+        xy[1]
+    ];
+    const xyAxis = getSameAxisByDirect(getRoadCompass(road, nodes)[road.axis]);
+    if (road.axis === 0) {
+        const container = nodes[road.containerId];
+        if (!(container.type === 'Group' || container.type === 'Unit')) {
+            throw new Error(`[E220203] invalid.`);
+        }
+        if (container.compassItems[0] < 2) {
+            if (road.avenue < container.children.length) {
+                ret[xyAxis] = itemLocas[n2i[container.children[road.avenue]]].xy[xyAxis];
+            } else {
+                const itemLoca = itemLocas[n2i[container.children[container.children.length - 1]]];
+                ret[xyAxis] = itemLoca.xy[xyAxis] + itemLoca.size[xyAxis];
+            }
+        } else {
+            if (road.avenue === 0) {
+                const itemLoca = itemLocas[n2i[container.children[container.children.length - 1]]];
+                ret[xyAxis] = itemLoca.xy[xyAxis] + itemLoca.size[xyAxis];
+            } else {
+                ret[xyAxis] = itemLocas[n2i[container.children[container.children.length - road.avenue]]].xy[xyAxis];
+            }
+        }
+    } else {
+        const itemLoca = itemLocas[n2i[road.containerId]];
+        const avenue = road.avenue;
+        if (avenue === 0) {
+            ret[xyAxis] = itemLoca.xy[xyAxis];
+        } else if (avenue === 1) {
+            ret[xyAxis] = itemLoca.xy[xyAxis] + itemLoca.size[xyAxis];
+        } else {
+            const _ = avenue;
+            return _;
+        }
+    }
+    return ret;
+};
 const parse5 = async (astL2, { pre , post , calc , version  } = {})=>{
-    console.log(999);
-    console.log(version);
     if (pre) {
         astL2 = await pre(astL2);
     }
